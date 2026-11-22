@@ -81,6 +81,7 @@ public class DuelView extends View {
                     if (getPhaseOptions().isEmpty()) {
                         hint = "No further phase choices";
                     } else {
+                        mainMenu = false;
                         phaseMenu = true;
                         selectedPhase = 0;
                     }
@@ -244,7 +245,7 @@ public class DuelView extends View {
 
         paint.setColor(0xffffd477);
         paint.setTextSize(Math.max(11, w * 0.031f));
-        canvas.drawText(duel.getPhase().name() + " PHASE", 14, h - 74, paint);
+        canvas.drawText(DuelEngine.phaseLabel(duel.getPhase()).toUpperCase(), 14, h - 74, paint);
         paint.setColor(0xfff3f5f7);
         paint.setTextSize(Math.max(10, w * 0.028f));
         canvas.drawText(hint, 14, h - 48, paint);
@@ -316,7 +317,12 @@ public class DuelView extends View {
 
     private List<DuelEngine.Phase> getPhaseOptions() {
         List<DuelEngine.Phase> options = new ArrayList<DuelEngine.Phase>();
-        if (duel.getPhase() == DuelEngine.Phase.MAIN1) {
+        if (duel.getPhase() == DuelEngine.Phase.DRAW) {
+            options.add(DuelEngine.Phase.STANDBY);
+            options.add(DuelEngine.Phase.MAIN1);
+        } else if (duel.getPhase() == DuelEngine.Phase.STANDBY) {
+            options.add(DuelEngine.Phase.MAIN1);
+        } else if (duel.getPhase() == DuelEngine.Phase.MAIN1) {
             options.add(DuelEngine.Phase.BATTLE);
             options.add(DuelEngine.Phase.MAIN2);
             options.add(DuelEngine.Phase.END);
