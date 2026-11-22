@@ -7,7 +7,11 @@
 - [x] Data-only card definitions and starter catalog
 - [x] Generic effect metadata model
 
-## Milestone 2 — Core rules
+## Milestone 2 — Core rules (standard Yu-Gi-Oh!-style baseline, no banlist)
+- [ ] Use 8000 Life Points, 40–60-card Main Deck, up to 15-card Extra Deck, optional up to 15-card Side Deck, and up to 3 copies per card name; do not apply forbidden/limited status restrictions
+- [ ] Use five Monster Zones and five Spell/Trap Zones per player, plus the agreed two dedicated Pendulum Zones; no Link/Extra Monster Zone layout in the current version
+- [ ] Use the standard six turn phases: Draw, Standby, Main Phase 1, Battle, Main Phase 2, End; enforce first-turn draw and Battle Phase rules
+- [ ] Use a five-card opening hand and standard draw/turn order
 - [ ] Separate duel state from Android View
 - [ ] Select a specific monster before attacking
 - [ ] Summon limits, battle phase, and turn phases
