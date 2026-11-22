@@ -16,10 +16,10 @@ An original, lightweight portrait card-duel prototype targeting Android 4.4 (API
 - 2 / 4 / 6 / 8: move selection up / left / right / down, matching the D-pad
 - 5: confirm the selected action
 - 7 / 9: scroll card details up / down while inspecting a card
-- *: open the duel menu (Select Phase / View Deck)
+- *: advance to the next phase (temporary mapping; can be refined later)
 - #: back / close the current view
 
-The first player starts in Draw Phase without drawing an extra card, because the opening hand has already been dealt. The Phase menu follows the legal turn order. After Draw Phase, the player may enter Standby Phase or Main Phase 1. From Main Phase 1 on turn 2 onward, the player may enter Battle Phase or go directly to End Phase. On the first turn, Battle Phase is unavailable. Main Phase 2 is available only after Battle Phase. Battle Phase is unavailable on the player's first turn. From Battle Phase, the player may enter Main Phase 2 or End Phase. Main Phase 2 leads to End Phase. Press 5 during End Phase to finish the turn; there is no separate End Turn shortcut key.
+The six phases remain visible in a compact ribbon at the bottom of the duel screen. The active phase is highlighted; no phase-selection popup covers the arena. Phase progression follows Draw → Standby → Main Phase 1 → Battle → Main Phase 2 → End. Battle Phase is skipped on the first turn. Press * to advance phases; press 5 during End Phase to finish the turn. The opening hand is already dealt, so the first Draw Phase does not draw an extra card.
 
 
 ## Build
