@@ -12,19 +12,16 @@ An original, lightweight portrait card-duel prototype targeting Android 4.4 (API
 - Simple CPU opponent.
 - Classic keypad controls with on-screen hints.
 
-## Keypad (initial mapping)
-- D-pad: move selection
-- Center / Enter: confirm or summon selected card
-- 5: confirm / summon / open selected deck card
-- 6: attack with selected monster
-- 7 / 9: scroll card details when the detail view is open
-- 8: Tribute Summon
-- 9: enter Battle Phase when not viewing card details
+## Keypad
+- 2 / 4 / 6 / 8: move selection (up / left / right / down), matching the D-pad
+- 5: main action / confirm
+- 7 / 9: scroll card details up / down while inspecting a card
+- 9: enter Battle Phase outside the card-detail view
 - 0: end turn
 - *: open the deck browser
 - #: back / close the current view
 
-The mapping is context-sensitive: 7 and 9 scroll long card text while card details are open; outside that view, 9 enters Battle Phase. `*` opens the deck browser and `#` backs out.
+The number keys are context-sensitive. The same `5` key is used to confirm the currently selected action. `7` and `9` are reserved for card-text scrolling while inspecting a card. `*` opens the deck browser and `#` backs out.
 
 ## Build
 Open with Android Studio using JDK 8 and Android SDK Platform 28, or run:
