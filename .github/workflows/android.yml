@@ -10,19 +10,21 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
     steps:
       - uses: actions/checkout@v4
-      # Current Android command-line tools require JDK 17.
-      - name: Set up JDK 17 for Android SDK tools
+      - name: Set up JDK 17 for Android SDK manager
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-      - uses: android-actions/setup-android@v3
-      - name: Install Android SDK 28
-        run: sdkmanager "platforms;android-28" "build-tools;28.0.3"
-      # AGP 3.5.4 / Gradle 5.6.4 are intentionally kept on JDK 8.
-      - name: Switch to JDK 8 for legacy Android build
+      - name: Install Android SDK platform and build tools
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-28" "build-tools;28.0.3"
+      - name: Switch to JDK 8 for legacy Android Gradle Plugin
         uses: actions/setup-java@v4
         with:
           distribution: temurin
