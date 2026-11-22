@@ -59,7 +59,7 @@ public class DuelView extends View {
                 duel.summonFromHand(selectedHand);
                 selectedHand = Math.min(selectedHand, Math.max(0, duel.getPlayerHand().size() - 1));
             }
-        } else if (key == KeyEvent.KEYCODE_7) {
+        } else if (key == KeyEvent.KEYCODE_8) {\n            duel.tributeSummonFromHand(selectedHand);\n            selectedHand = Math.min(selectedHand, Math.max(0, duel.getPlayerHand().size() - 1));\n        } else if (key == KeyEvent.KEYCODE_7) {
             duel.enterBattlePhase();
             choosingMonster = true;
             hint = "Choose a monster slot with D-pad, then press 6";
@@ -136,7 +136,7 @@ public class DuelView extends View {
         paint.setColor(0xfff3f5f7);
         paint.setTextSize(Math.max(10, w * 0.028f));
         canvas.drawText(hint, 14, h - 48, paint);
-        canvas.drawText("D-pad select | OK/5 summon/attack | 7 battle | 0 end", 14, h - 20, paint);
+        canvas.drawText("D-pad select | OK/5 summon | 8 tribute | 7 battle | 6 attack | 0 end", 14, h - 20, paint);
     }
 
     private void drawField(Canvas canvas, CardDefinition[] field, float y, float w, boolean playerSide) {
