@@ -164,7 +164,9 @@ public class DuelView extends View {
             hint = navColumn == 0 || navColumn == 6
                     ? "Pendulum Zone selected" : "Spell/Trap Zone " + navColumn + " is empty in this prototype";
         } else if (navRow == 2) {
-            if (navColumn <= 3) {
+            if (navColumn == 0) {
+                hint = "Main Deck is face-down. Its contents cannot be inspected freely.";
+            } else if (navColumn >= 1 && navColumn <= 3) {
                 browsePile = navColumn;
                 selectedDeck = 0;
                 deckBrowser = true;
@@ -436,8 +438,9 @@ public class DuelView extends View {
             paint.setTextSize(Math.max(7, Math.min(10, w * 0.025f)));
             canvas.drawText(labels[i], x + 3, y + pileH * 0.42f, paint);
             paint.setTextSize(Math.max(7, w * 0.020f));
-            canvas.drawText(i == 4 ? "ZONE" : String.valueOf(counts[i]),
-                    x + 3, y + pileH * 0.82f, paint);
+            String pileInfo = i == 0 ? "FD " + counts[i]
+                    : i == 4 ? "ZONE" : String.valueOf(counts[i]);
+            canvas.drawText(pileInfo, x + 3, y + pileH * 0.82f, paint);
         }
     }
 
@@ -483,7 +486,7 @@ public class DuelView extends View {
             canvas.drawText((i + 1) + ". " + deck.get(i).name, 26, 120 + (i - first) * 22, paint);
         }
         paint.setColor(0xffd9eaf4);
-        canvas.drawText("2/8 browse | 5 details | # close", 25, h - 108, paint);
+        canvas.drawText("2/8 browse | 5 inspect | # close", 25, h - 108, paint);
     }
 
     private void drawCardDetails(Canvas canvas, float w, float h) {
