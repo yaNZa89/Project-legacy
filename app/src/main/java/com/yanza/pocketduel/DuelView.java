@@ -411,10 +411,13 @@ public class DuelView extends View {
             canvas.drawRoundRect(rect, 4, 4, paint);
             paint.setColor(card == null ? 0xffc6d5df : 0xff101b2b);
             paint.setTextSize(Math.max(7, getWidth() * 0.019f));
+            boolean hiddenOpponentCard = !playerSide && monsterRow
+                    && duel.isCpuMonsterFaceDown(i);
             String label = monsterRow ? (card == null ? "M" + (i + 1)
-                    : shortName(card.name, 7)) : "S/T " + (i + 1);
+                    : hiddenOpponentCard ? "SET" : shortName(card.name, 7))
+                    : "S/T " + (i + 1);
             canvas.drawText(label, x + 2, y + zoneH * 0.43f, paint);
-            if (card != null) {
+            if (card != null && !hiddenOpponentCard) {
                 paint.setTextSize(Math.max(7, getWidth() * 0.018f));
                 canvas.drawText("A" + card.attack + " D" + card.defense,
                         x + 2, y + zoneH * 0.78f, paint);
