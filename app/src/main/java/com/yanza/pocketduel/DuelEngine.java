@@ -20,6 +20,7 @@ public final class DuelEngine {
     private final CardDefinition[] cpuField = new CardDefinition[5];
     private final boolean[] playerAttacked = new boolean[5];
     private final boolean[] cpuAttacked = new boolean[5];
+    private final boolean[] cpuMonsterFaceDown = new boolean[5];
 
     private int playerLP = 8000;
     private int cpuLP = 8000;
@@ -62,6 +63,14 @@ public final class DuelEngine {
     }
     public CardDefinition[] getPlayerField() { return playerField.clone(); }
     public CardDefinition[] getCpuField() { return cpuField.clone(); }
+    /** Opponent face-down monsters expose no card identity or stats to the view. */
+    public boolean isCpuMonsterFaceDown(int slot) {
+        return validSlot(slot) && cpuMonsterFaceDown[slot] && cpuField[slot] != null;
+    }
+    /** Used by CPU set actions; setting a card face-up reveals it normally. */
+    public void setCpuMonsterFaceDown(int slot, boolean faceDown) {
+        if (validSlot(slot) && cpuField[slot] != null) cpuMonsterFaceDown[slot] = faceDown;
+    }
     public int getPlayerLP() { return playerLP; }
     public int getCpuLP() { return cpuLP; }
     public int getTurn() { return turn; }
@@ -175,6 +184,7 @@ public final class DuelEngine {
                 cpuLP = Math.max(0, cpuLP - (attacker.attack - defender.attack));
                 playerGraveyard.add(defender);
                 cpuField[defenderSlot] = null;
+                cpuMonsterFaceDown[defenderSlot] = false;
                 message = attacker.name + " wins the battle";
             } else if (attacker.attack < defender.attack) {
                 playerLP = Math.max(0, playerLP - (defender.attack - attacker.attack));
@@ -185,6 +195,7 @@ public final class DuelEngine {
                 playerGraveyard.add(attacker);
                 playerField[attackerSlot] = null;
                 cpuField[defenderSlot] = null;
+                cpuMonsterFaceDown[defenderSlot] = false;
                 message = "Both monsters are removed";
             }
         } else {
@@ -240,6 +251,7 @@ public final class DuelEngine {
                 cpuField[i] = null;
             } else {
                 cpuField[i] = null;
+                cpuMonsterFaceDown[i] = false;
             }
             cpuAttacked[i] = true;
             checkWinner();
