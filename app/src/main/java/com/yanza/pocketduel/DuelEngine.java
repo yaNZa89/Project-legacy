@@ -254,7 +254,8 @@ public final class DuelEngine {
                 int slot = firstEmpty(cpuField);
                 CardDefinition choice = cpuHand.get(strongestIndex);
                 cpuField[slot] = cpuHand.remove(strongestIndex);
-                cpuMonsterFaceDown[slot] = choice.attack <= 1000;
+                // Set decisions depend on the board state, never on ATK/DEF thresholds.
+                cpuMonsterFaceDown[slot] = weakestMonster(playerField) >= 0;
                 message = cpuMonsterFaceDown[slot] ? "Opponent Set a monster face-down" : "Opponent Normal Summoned a monster";
             }
         }
