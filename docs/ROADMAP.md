@@ -16,9 +16,9 @@
 - [ ] Effect queue and chain resolution
 
 ## Milestone 3 — Field layout and summon systems (Link deferred)
-- [ ] Design the portrait duel field with standard Monster Zones and Spell/Trap Zones
-- [ ] Include two clearly visible, dedicated Pendulum Zones (left and right) for both players
-- [ ] Do not create Link Monster Zones, Extra Monster Zones, or Link-arrow placement rules in the current version
+- [x] Design the portrait duel field with standard Monster Zones and Spell/Trap Zones
+- [x] Include two clearly visible, dedicated Pendulum Zones (left and right) for both players
+- [x] Do not create Link Monster Zones, Extra Monster Zones, or Link-arrow placement rules in the current version
 - [x] Preserve Monster Type and Attribute in card data
 - [x] Add Pendulum scale metadata and original Pendulum test cards
 - [ ] Complete Tribute Summon validation and selection
