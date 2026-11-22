@@ -4,10 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * Platform-independent duel rules for the first prototype.
- * This deliberately implements a small original ruleset, not the complete TCG rules.
- */
+/** Platform-independent duel rules for the first prototype. */
 public final class DuelEngine {
     public enum Phase { DRAW, MAIN, BATTLE, END, FINISHED }
 
@@ -16,9 +13,9 @@ public final class DuelEngine {
     private final List<CardDefinition> playerHand = new ArrayList<CardDefinition>();
     private final List<CardDefinition> cpuHand = new ArrayList<CardDefinition>();
     private final CardDefinition[] playerField = new CardDefinition[5];
-    private final CardDefinition[] cpuField = new CardDefinition[3];
-    private final boolean[] playerAttacked = new boolean[3];
-    private final boolean[] cpuAttacked = new boolean[3];
+    private final CardDefinition[] cpuField = new CardDefinition[5];
+    private final boolean[] playerAttacked = new boolean[5];
+    private final boolean[] cpuAttacked = new boolean[5];
 
     private int playerLP = 8000;
     private int cpuLP = 8000;
@@ -44,6 +41,7 @@ public final class DuelEngine {
     }
 
     public List<CardDefinition> getPlayerHand() { return Collections.unmodifiableList(playerHand); }
+    public List<CardDefinition> getPlayerDeck() { return Collections.unmodifiableList(playerDeck); }
     public CardDefinition[] getPlayerField() { return playerField.clone(); }
     public CardDefinition[] getCpuField() { return cpuField.clone(); }
     public int getPlayerLP() { return playerLP; }
@@ -53,7 +51,21 @@ public final class DuelEngine {
     public String getMessage() { return message; }
 
     public boolean summonFromHand(int handIndex) {
-        return summonFromHand(handIndex, false);
+        if (phase != Phase.MAIN) return reject("Summoning is only allowed in Main Phase");
+        if (playerNormalSummons >= 1) return reject("Normal Summon already used this turn");
+        if (handIndex < 0 || handIndex >= playerHand.size()) return reject("Select a card in your hand");
+        CardDefinition card = playerHand.get(handIndex);
+        if (card.kind != CardDefinition.Kind.MONSTER) return reject("Select a Monster");
+        if (card.level >= 5) return reject("Level 5+ monsters require Tribute Summon");
+        int slot = firstEmpty(playerField);
+        if (slot < 0) return reject("Your monster area is full");
+        playerHand.remove(handIndex);
+        playerField[slot] = card;
+        playerNormalSummons++;
+        message = card.name + " summoned to slot " + (slot + 1);
+        String effectMessage = CardEffectResolver.resolveOnSummon(this, card);
+        if (effectMessage.length() > 0) message += " - " + effectMessage;
+        return true;
     }
 
     /** Tribute Summon: Level 5-6 needs one tribute; Level 7+ needs two. */
@@ -65,40 +77,17 @@ public final class DuelEngine {
         if (card.kind != CardDefinition.Kind.MONSTER) return reject("Only monsters can be Tribute Summoned");
         int required = card.level >= 7 ? 2 : card.level >= 5 ? 1 : 0;
         if (required == 0) return reject("This monster does not need a Tribute");
-        if (countMonsters(playerField) < required) {
-            return reject("Need " + required + " monster tribute(s)");
-        }
-        int slot = firstEmpty(playerField);
-        if (slot < 0) slot = weakestMonster(playerField);
-        if (slot < 0) return reject("No monster area available");
-        // Select the lowest-ATK monsters as automatic tributes for keypad simplicity.
+        if (countMonsters(playerField) < required) return reject("Need " + required + " monster tribute(s)");
         for (int n = 0; n < required; n++) {
             int tributeSlot = weakestMonster(playerField);
             if (tributeSlot >= 0) playerField[tributeSlot] = null;
         }
-        slot = firstEmpty(playerField);
+        int slot = firstEmpty(playerField);
         if (slot < 0) return reject("No monster area available after Tribute");
         playerHand.remove(handIndex);
         playerField[slot] = card;
         playerNormalSummons++;
         message = card.name + " Tribute Summoned (" + required + " tribute)";
-        String effectMessage = CardEffectResolver.resolveOnSummon(this, card);
-        if (effectMessage.length() > 0) message += " - " + effectMessage;
-        return true;
-    }
-
-    private boolean summonFromHand(int handIndex, boolean ignored) {
-        if (phase != Phase.MAIN) return reject("Summoning is only allowed in Main Phase");
-        if (playerNormalSummons >= 1) return reject("Normal Summon already used this turn");
-        if (handIndex < 0 || handIndex >= playerHand.size()) return reject("Select a card in your hand");
-        CardDefinition card = playerHand.get(handIndex);
-        if (card.level >= 5) return reject("Level 5+ monsters require Tribute Summon");
-        int slot = firstEmpty(playerField);
-        if (slot < 0) return reject("Your monster area is full");
-        playerHand.remove(handIndex);
-        playerField[slot] = card;
-        playerNormalSummons++;
-        message = card.name + " summoned to slot " + (slot + 1);
         String effectMessage = CardEffectResolver.resolveOnSummon(this, card);
         if (effectMessage.length() > 0) message += " - " + effectMessage;
         return true;
@@ -223,7 +212,7 @@ public final class DuelEngine {
         for (CardDefinition card : field) if (card != null) return true;
         return false;
     }
-    private boolean validSlot(int slot) { return slot >= 0 && slot < 3; }
+    private boolean validSlot(int slot) { return slot >= 0 && slot < 5; }
     private void clearAttacks(boolean[] values) {
         for (int i = 0; i < values.length; i++) values[i] = false;
     }
