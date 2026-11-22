@@ -36,8 +36,8 @@ public final class DuelEngine {
         Collections.reverse(cpuDeck);
         draw(playerDeck, playerHand, 5);
         draw(cpuDeck, cpuHand, 5);
-        phase = Phase.MAIN1;
-        message = "Your Main Phase 1";
+        phase = Phase.DRAW;
+        message = "Your Draw Phase (first turn draw skipped)";
     }
 
     public List<CardDefinition> getPlayerHand() { return Collections.unmodifiableList(playerHand); }
@@ -102,6 +102,8 @@ public final class DuelEngine {
         } else if (phase == Phase.MAIN1) {
             if (next != Phase.BATTLE && next != Phase.MAIN2 && next != Phase.END)
                 return reject("Choose Battle, Main Phase 2, or End Phase");
+            if (turn == 1 && next == Phase.BATTLE)
+                return reject("Battle Phase is unavailable on your first turn");
         } else if (phase == Phase.BATTLE) {
             if (next != Phase.MAIN2 && next != Phase.END)
                 return reject("Choose Main Phase 2 or End Phase");
