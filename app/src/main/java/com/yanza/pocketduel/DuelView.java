@@ -107,7 +107,7 @@ public class DuelView extends View {
                 choosingMonster = !choosingMonster;
                 hint = choosingMonster ? "Monster Zone selected - press 5 to inspect"
                         : "Hand selected - press 5 to inspect";
-            } else if (!phaseRibbonFocused) {
+            } else {
                 selectedMonster = clamp(selectedMonster + (moveUp ? -1 : 1), 0, 4);
             }
         } else if (key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER
