@@ -260,7 +260,7 @@ public final class DuelEngine {
         }
         for (int i = 0; i < cpuField.length; i++) {
             CardDefinition attacker = cpuField[i];
-            if (attacker == null || cpuAttacked[i]) continue;
+            if (attacker == null || cpuAttacked[i] || cpuMonsterFaceDown[i]) continue;
             int target = weakestMonster(playerField);
             if (target < 0) {
                 playerLP = Math.max(0, playerLP - attacker.attack);
