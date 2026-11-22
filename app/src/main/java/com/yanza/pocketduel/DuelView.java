@@ -7,186 +7,178 @@ import android.graphics.RectF;
 import android.view.KeyEvent;
 import android.view.View;
 
-import java.util.ArrayList;
 import java.util.List;
 
+/** Portrait duel screen. All rule changes are delegated to DuelEngine. */
 public class DuelView extends View {
-    private final Paint p = new Paint(3);
-    private final List<Card> hand = new ArrayList<Card>();
-    private final Card[] playerField = new Card[3];
-    private final Card[] cpuField = new Card[3];
-    private int selected = 0;
-    private int playerLP = 4000;
-    private int cpuLP = 4000;
-    private int turn = 1;
-    private boolean playerTurn = true;
-    private String message = "Your turn - select a card";
-    private int phase = 0;
-
-    private static class Card {
-        String name;
-        int atk;
-        int def;
-        Card(String n, int a, int d) { name = n; atk = a; def = d; }
-    }
+    private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final DuelEngine duel = new DuelEngine();
+    private int selectedHand;
+    private int selectedMonster;
+    private boolean choosingMonster;
+    private String hint = "Select a card and press OK/5 to summon";
 
     public DuelView(Context context) {
         super(context);
         setFocusable(true);
-        hand.add(new Card("Ember Scout", 1200, 800));
-        hand.add(new Card("Stone Guardian", 900, 1500));
-        hand.add(new Card("Sky Striker", 1500, 1000));
-        hand.add(new Card("Forest Wisp", 700, 1100));
-        hand.add(new Card("Iron Cub", 1000, 1000));
     }
 
     public boolean handleKey(int key) {
-        if (!playerTurn) return true;
+        if (duel.getPhase() == DuelEngine.Phase.FINISHED) {
+            if (key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER
+                    || key == KeyEvent.KEYCODE_5) {
+                // A fresh duel is started by relaunching the activity in this prototype.
+                hint = "Duel finished - restart the app for a new duel";
+                invalidate();
+                return true;
+            }
+            return true;
+        }
+
         if (key == KeyEvent.KEYCODE_DPAD_LEFT || key == KeyEvent.KEYCODE_DPAD_UP) {
-            selected = Math.max(0, selected - 1);
+            if (duel.getPhase() == DuelEngine.Phase.BATTLE) {
+                choosingMonster = true;
+                selectedMonster = Math.max(0, selectedMonster - 1);
+            } else {
+                choosingMonster = false;
+                selectedHand = Math.max(0, selectedHand - 1);
+            }
         } else if (key == KeyEvent.KEYCODE_DPAD_RIGHT || key == KeyEvent.KEYCODE_DPAD_DOWN) {
-            selected = Math.min(Math.max(0, hand.size() - 1), selected + 1);
+            if (duel.getPhase() == DuelEngine.Phase.BATTLE) {
+                choosingMonster = true;
+                selectedMonster = Math.min(2, selectedMonster + 1);
+            } else {
+                choosingMonster = false;
+                selectedHand = Math.min(Math.max(0, duel.getPlayerHand().size() - 1), selectedHand + 1);
+            }
         } else if (key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER
                 || key == KeyEvent.KEYCODE_5) {
-            summonSelected();
+            if (duel.getPhase() == DuelEngine.Phase.BATTLE) {
+                attackSelected();
+            } else {
+                duel.summonFromHand(selectedHand);
+                selectedHand = Math.min(selectedHand, Math.max(0, duel.getPlayerHand().size() - 1));
+            }
+        } else if (key == KeyEvent.KEYCODE_7) {
+            duel.enterBattlePhase();
+            choosingMonster = true;
+            hint = "Choose a monster slot with D-pad, then press 6";
         } else if (key == KeyEvent.KEYCODE_6) {
-            attack();
+            if (duel.getPhase() != DuelEngine.Phase.BATTLE) duel.enterBattlePhase();
+            attackSelected();
         } else if (key == KeyEvent.KEYCODE_0) {
-            endTurn();
+            duel.endPlayerTurn();
+            selectedHand = 0;
+            selectedMonster = 0;
+            choosingMonster = false;
         } else if (key == KeyEvent.KEYCODE_BACK) {
-            selected = 0;
+            choosingMonster = false;
+            selectedHand = 0;
         } else {
             return false;
         }
+        hint = duel.getMessage();
         invalidate();
         return true;
     }
 
-    private void summonSelected() {
-        if (hand.size() == 0) { message = "Your hand is empty"; return; }
-        int slot = firstEmpty(playerField);
-        if (slot < 0) { message = "Your monster area is full"; return; }
-        Card c = hand.remove(selected);
-        playerField[slot] = c;
-        selected = Math.min(selected, Math.max(0, hand.size() - 1));
-        message = c.name + " summoned";
-    }
-
-    private int firstEmpty(Card[] field) {
-        for (int i = 0; i < field.length; i++) if (field[i] == null) return i;
-        return -1;
-    }
-
-    private void attack() {
-        Card attacker = playerField[0];
-        if (attacker == null) attacker = playerField[1];
-        if (attacker == null) attacker = playerField[2];
-        if (attacker == null) { message = "Summon a monster first"; return; }
-        Card defender = cpuField[0];
-        if (defender == null) defender = cpuField[1];
-        if (defender == null) defender = cpuField[2];
-        if (defender == null) {
-            cpuLP -= attacker.atk;
-            message = "Direct attack: " + attacker.atk;
-        } else if (attacker.atk > defender.atk) {
-            cpuLP -= attacker.atk - defender.atk;
-            removeCard(cpuField, defender);
-            message = "You won the battle";
-        } else if (attacker.atk < defender.atk) {
-            playerLP -= defender.atk - attacker.atk;
-            removeCard(playerField, attacker);
-            message = "Your monster lost";
-        } else {
-            removeCard(cpuField, defender);
-            removeCard(playerField, attacker);
-            message = "Both monsters were removed";
+    private void attackSelected() {
+        CardDefinition[] own = duel.getPlayerField();
+        CardDefinition[] enemy = duel.getCpuField();
+        if (selectedMonster < 0 || selectedMonster >= own.length || own[selectedMonster] == null) {
+            hint = "Choose an occupied monster slot";
+            return;
         }
-        if (cpuLP < 0) cpuLP = 0;
-        if (playerLP < 0) playerLP = 0;
-    }
-
-    private void removeCard(Card[] field, Card c) {
-        for (int i = 0; i < field.length; i++) if (field[i] == c) field[i] = null;
-    }
-
-    private void endTurn() {
-        playerTurn = false;
-        message = "CPU turn";
-        Card cpu = new Card("CPU Golem", 800 + (turn % 4) * 200, 900);
-        int slot = firstEmpty(cpuField);
-        if (slot >= 0) cpuField[slot] = cpu;
-        Card attacker = cpuField[0];
-        if (attacker == null) attacker = cpuField[1];
-        if (attacker == null) attacker = cpuField[2];
-        if (attacker != null) {
-            Card target = playerField[0];
-            if (target == null) target = playerField[1];
-            if (target == null) target = playerField[2];
-            if (target == null) playerLP = Math.max(0, playerLP - attacker.atk);
-            else if (attacker.atk > target.atk) {
-                playerLP = Math.max(0, playerLP - (attacker.atk - target.atk));
-                removeCard(playerField, target);
+        int target = -1;
+        int weakest = Integer.MAX_VALUE;
+        for (int i = 0; i < enemy.length; i++) {
+            if (enemy[i] != null && enemy[i].attack < weakest) {
+                weakest = enemy[i].attack;
+                target = i;
             }
         }
-        turn++;
-        playerTurn = true;
-        message = "Your turn - CPU played a card";
-        invalidate();
+        duel.playerAttack(selectedMonster, target);
+        hint = duel.getMessage();
     }
 
     @Override
-    protected void onDraw(Canvas c) {
-        super.onDraw(c);
-        float w = getWidth(), h = getHeight();
-        c.drawColor(0xff101b2b);
-        p.setColor(0xff203b50);
-        c.drawRect(0, 0, w, h, p);
-        p.setColor(0xffd8e7ef);
-        p.setTextSize(Math.max(16, w * 0.045f));
-        c.drawText("POCKET DUEL", 18, 34, p);
-        p.setTextSize(Math.max(13, w * 0.035f));
-        c.drawText("CPU  LP: " + cpuLP, 18, 65, p);
-        c.drawText("TURN " + turn, w - 110, 65, p);
-        drawField(c, cpuField, 95, w);
-        p.setColor(0xffb9cbd8);
-        c.drawText("DUEL FIELD", 18, h * 0.48f, p);
-        drawField(c, playerField, h * 0.52f, w);
-        p.setColor(0xffd8e7ef);
-        c.drawText("YOU  LP: " + playerLP, 18, h * 0.78f, p);
-        c.drawText("HAND", 18, h * 0.82f, p);
-        float cardW = (w - 36) / 3.2f;
-        float cardH = h * 0.105f;
-        for (int i = 0; i < hand.size() && i < 5; i++) {
-            float x = 12 + i * (w - 24 - cardW) / 4f;
-            RectF r = new RectF(x, h * 0.835f, x + cardW, h * 0.835f + cardH);
-            p.setColor(i == selected ? 0xffffc857 : 0xff52758b);
-            c.drawRoundRect(r, 8, 8, p);
-            p.setColor(0xff101b2b);
-            p.setTextSize(Math.max(10, w * 0.025f));
-            c.drawText(hand.get(i).name, x + 5, r.top + 20, p);
-            c.drawText("ATK " + hand.get(i).atk, x + 5, r.top + 39, p);
-        }
-        p.setColor(0xfff3f5f7);
-        p.setTextSize(Math.max(11, w * 0.029f));
-        c.drawText(message, 14, h - 50, p);
-        c.drawText("D-pad: select   OK/5: summon   6: attack   0: end turn", 14, h - 22, p);
+    protected void onDraw(Canvas canvas) {
+        super.onDraw(canvas);
+        float w = getWidth();
+        float h = getHeight();
+        canvas.drawColor(0xff101b2b);
+        paint.setColor(0xff203b50);
+        canvas.drawRect(0, 0, w, h, paint);
+
+        paint.setColor(0xfff0f5f8);
+        paint.setTextSize(Math.max(17, w * 0.052f));
+        canvas.drawText("POCKET DUEL", 14, 30, paint);
+        paint.setTextSize(Math.max(13, w * 0.036f));
+        canvas.drawText("CPU  LP: " + duel.getCpuLP(), 14, 58, paint);
+        canvas.drawText("TURN " + duel.getTurn(), w - 105, 58, paint);
+
+        drawField(canvas, duel.getCpuField(), h * 0.13f, w, false);
+        paint.setColor(0xffc6d5df);
+        paint.setTextSize(Math.max(12, w * 0.034f));
+        canvas.drawText("OPPONENT FIELD", 14, h * 0.265f, paint);
+        canvas.drawText("YOUR FIELD", 14, h * 0.485f, paint);
+        drawField(canvas, duel.getPlayerField(), h * 0.51f, w, true);
+
+        paint.setColor(0xfff0f5f8);
+        paint.setTextSize(Math.max(14, w * 0.039f));
+        canvas.drawText("YOU  LP: " + duel.getPlayerLP(), 14, h * 0.65f, paint);
+        canvas.drawText("HAND (" + duel.getPlayerHand().size() + ")", 14, h * 0.70f, paint);
+        drawHand(canvas, w, h);
+
+        paint.setColor(0xffffd477);
+        paint.setTextSize(Math.max(11, w * 0.031f));
+        canvas.drawText(duel.getPhase().name() + " PHASE", 14, h - 74, paint);
+        paint.setColor(0xfff3f5f7);
+        paint.setTextSize(Math.max(10, w * 0.028f));
+        canvas.drawText(hint, 14, h - 48, paint);
+        canvas.drawText("D-pad select | OK/5 summon/attack | 7 battle | 0 end", 14, h - 20, paint);
     }
 
-    private void drawField(Canvas c, Card[] field, float y, float w) {
-        float gap = 8;
-        float cw = (w - 36 - gap * 2) / 3;
+    private void drawField(Canvas canvas, CardDefinition[] field, float y, float w, boolean playerSide) {
+        float gap = 7;
+        float cw = (w - 28 - gap * 2) / 3f;
         float ch = getHeight() * 0.105f;
         for (int i = 0; i < field.length; i++) {
-            float x = 12 + i * (cw + gap);
-            RectF r = new RectF(x, y, x + cw, y + ch);
-            p.setColor(field[i] == null ? 0xff31495b : 0xffbd9653);
-            c.drawRoundRect(r, 8, 8, p);
+            float x = 7 + i * (cw + gap);
+            RectF rect = new RectF(x, y, x + cw, y + ch);
+            boolean selected = playerSide && duel.getPhase() == DuelEngine.Phase.BATTLE
+                    && choosingMonster && selectedMonster == i;
+            paint.setColor(selected ? 0xffffc857
+                    : field[i] == null ? 0xff31495b : 0xffbd9653);
+            canvas.drawRoundRect(rect, 7, 7, paint);
             if (field[i] != null) {
-                p.setColor(0xff101b2b);
-                p.setTextSize(Math.max(10, w * 0.027f));
-                c.drawText(field[i].name, x + 5, y + 22, p);
-                c.drawText("ATK " + field[i].atk, x + 5, y + 42, p);
+                paint.setColor(0xff101b2b);
+                paint.setTextSize(Math.max(9, w * 0.026f));
+                canvas.drawText(shortName(field[i].name), x + 4, y + 18, paint);
+                canvas.drawText("ATK " + field[i].attack, x + 4, y + 36, paint);
+                canvas.drawText("DEF " + field[i].defense, x + 4, y + 51, paint);
             }
         }
+    }
+
+    private void drawHand(Canvas canvas, float w, float h) {
+        List<CardDefinition> hand = duel.getPlayerHand();
+        float cardW = (w - 28) / 3.1f;
+        float cardH = h * 0.105f;
+        for (int i = 0; i < hand.size() && i < 5; i++) {
+            float x = 7 + i * (w - 14 - cardW) / 4f;
+            RectF rect = new RectF(x, h * 0.715f, x + cardW, h * 0.715f + cardH);
+            paint.setColor(i == selectedHand && duel.getPhase() == DuelEngine.Phase.MAIN
+                    ? 0xffffc857 : 0xff52758b);
+            canvas.drawRoundRect(rect, 7, 7, paint);
+            paint.setColor(0xff101b2b);
+            paint.setTextSize(Math.max(9, w * 0.024f));
+            canvas.drawText(shortName(hand.get(i).name), x + 4, rect.top + 18, paint);
+            canvas.drawText("ATK " + hand.get(i).attack, x + 4, rect.top + 35, paint);
+        }
+    }
+
+    private String shortName(String name) {
+        return name.length() > 13 ? name.substring(0, 12) : name;
     }
 }
