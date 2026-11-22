@@ -6,12 +6,12 @@
         android:allowBackup="false"
         android:label="Pocket Duel"
         android:theme="@android:style/Theme.Holo.NoActionBar"
-        android:screenOrientation="portrait">
+        >
         <activity
             android:name=".MainActivity"
             android:configChanges="keyboard|keyboardHidden|orientation|screenSize"
             android:screenOrientation="portrait"
-            android:exported="true">
+            >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
