@@ -25,7 +25,7 @@ public class DuelView extends View {
     private int selectedPhase;
     private CardDefinition detailCard;
     private int detailScroll;
-    private String hint = "D-pad select | * deck/menu | # back";
+    private String hint = "2/4/6/8 move | 5 action | * menu | # back";
 
     public DuelView(Context context) {
         super(context);
@@ -323,7 +323,7 @@ public class DuelView extends View {
         } else if (duel.getPhase() == DuelEngine.Phase.STANDBY) {
             options.add(DuelEngine.Phase.MAIN1);
         } else if (duel.getPhase() == DuelEngine.Phase.MAIN1) {
-            options.add(DuelEngine.Phase.BATTLE);
+            if (duel.getTurn() > 1) options.add(DuelEngine.Phase.BATTLE);
             options.add(DuelEngine.Phase.MAIN2);
             options.add(DuelEngine.Phase.END);
         } else if (duel.getPhase() == DuelEngine.Phase.BATTLE) {
