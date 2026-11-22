@@ -18,6 +18,8 @@ public class DuelView extends View {
     private int selectedMonster;
     private int selectedDeck;
     private boolean choosingMonster;
+    private boolean phaseRibbonFocused;
+    private int selectedPhaseIndex;
     private boolean deckBrowser;
     private CardDefinition detailCard;
     private int detailScroll;
@@ -74,7 +76,9 @@ public class DuelView extends View {
         if (key == KeyEvent.KEYCODE_DPAD_LEFT || key == KeyEvent.KEYCODE_DPAD_RIGHT
                 || key == KeyEvent.KEYCODE_4 || key == KeyEvent.KEYCODE_6) {
             int direction = (key == KeyEvent.KEYCODE_DPAD_LEFT || key == KeyEvent.KEYCODE_4) ? -1 : 1;
-            if (duel.getPhase() == DuelEngine.Phase.BATTLE || choosingMonster) {
+            if (phaseRibbonFocused) {
+                selectedPhaseIndex = clamp(selectedPhaseIndex + direction, 0, 5);
+            } else if (duel.getPhase() == DuelEngine.Phase.BATTLE || choosingMonster) {
                 selectedMonster = clamp(selectedMonster + direction, 0, 4);
                 choosingMonster = true;
             } else {
@@ -85,18 +89,19 @@ public class DuelView extends View {
         } else if (key == KeyEvent.KEYCODE_DPAD_UP || key == KeyEvent.KEYCODE_DPAD_DOWN
                 || key == KeyEvent.KEYCODE_2 || key == KeyEvent.KEYCODE_8) {
             boolean moveUp = key == KeyEvent.KEYCODE_DPAD_UP || key == KeyEvent.KEYCODE_2;
-            if (duel.getPhase() != DuelEngine.Phase.BATTLE) {
+            phaseRibbonFocused = !moveUp;
+            if (!phaseRibbonFocused && duel.getPhase() != DuelEngine.Phase.BATTLE) {
                 choosingMonster = !choosingMonster;
                 hint = choosingMonster ? "Monster Zone selected - press 5 to inspect"
                         : "Hand selected - press 5 to inspect";
-            } else {
+            } else if (!phaseRibbonFocused) {
                 selectedMonster = clamp(selectedMonster + (moveUp ? -1 : 1), 0, 4);
             }
-        } else if (key == KeyEvent.KEYCODE_STAR) {
-            advanceVisiblePhase();
         } else if (key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER
                 || key == KeyEvent.KEYCODE_5) {
-            if (duel.getPhase() == DuelEngine.Phase.END) {
+            if (phaseRibbonFocused) {
+                activateSelectedPhase();
+            } else if (duel.getPhase() == DuelEngine.Phase.END) {
                 duel.endPlayerTurn();
                 selectedHand = 0;
                 selectedMonster = 0;
@@ -114,6 +119,7 @@ public class DuelView extends View {
                         Math.max(0, duel.getPlayerHand().size() - 1));
             }
         } else if (key == KeyEvent.KEYCODE_POUND || key == KeyEvent.KEYCODE_BACK) {
+            phaseRibbonFocused = false;
             choosingMonster = false;
             selectedHand = 0;
         } else return false;
@@ -191,39 +197,51 @@ public class DuelView extends View {
         paint.setColor(0xfff3f5f7);
         paint.setTextSize(Math.max(10, w * 0.028f));
         canvas.drawText(hint, 14, h - 48, paint);
-        canvas.drawText("2/4/6/8 move | 5 action | * next phase | # back", 14, h - 20, paint);
+        canvas.drawText("8 phase bar | 4/6 move | 5 select | 2 return", 14, h - 20, paint);
 
         if (deckBrowser) drawDeckBrowser(canvas, w, h);
         if (detailCard != null) drawCardDetails(canvas, w, h);
     }
 
 
-    private void advanceVisiblePhase() {
-        DuelEngine.Phase current = duel.getPhase();
-        DuelEngine.Phase next = null;
-        switch (current) {
-            case DRAW: next = DuelEngine.Phase.STANDBY; break;
-            case STANDBY: next = DuelEngine.Phase.MAIN1; break;
-            case MAIN1:
-                next = duel.getTurn() == 1 ? DuelEngine.Phase.END : DuelEngine.Phase.BATTLE;
-                break;
-            case BATTLE: next = DuelEngine.Phase.MAIN2; break;
-            case MAIN2: next = DuelEngine.Phase.END; break;
-            case END:
-                duel.endPlayerTurn();
-                selectedHand = 0;
-                selectedMonster = 0;
-                choosingMonster = false;
-                hint = duel.getMessage();
-                invalidate();
-                return;
+    private int phaseIndex(DuelEngine.Phase phase) {
+        switch (phase) {
+            case DRAW: return 0;
+            case STANDBY: return 1;
+            case MAIN1: return 2;
+            case BATTLE: return 3;
+            case MAIN2: return 4;
+            case END: return 5;
+            default: return 0;
+        }
+    }
+
+    private void activateSelectedPhase() {
+        DuelEngine.Phase next;
+        switch (selectedPhaseIndex) {
+            case 0: next = DuelEngine.Phase.DRAW; break;
+            case 1: next = DuelEngine.Phase.STANDBY; break;
+            case 2: next = DuelEngine.Phase.MAIN1; break;
+            case 3: next = DuelEngine.Phase.BATTLE; break;
+            case 4: next = DuelEngine.Phase.MAIN2; break;
+            case 5: next = DuelEngine.Phase.END; break;
             default: return;
         }
-        if (next != null) {
+        if (next == DuelEngine.Phase.DRAW && duel.getPhase() == DuelEngine.Phase.END) {
+            duel.endPlayerTurn();
+            selectedPhaseIndex = 0;
+            selectedHand = 0;
+            selectedMonster = 0;
+            choosingMonster = false;
+            phaseRibbonFocused = false;
+        } else {
             duel.advanceToPhase(next);
-            choosingMonster = next == DuelEngine.Phase.BATTLE;
-            hint = duel.getMessage();
+            if (duel.getPhase() == next) {
+                selectedPhaseIndex = phaseIndex(next);
+                choosingMonster = next == DuelEngine.Phase.BATTLE;
+            }
         }
+        hint = duel.getMessage();
     }
 
     private void drawPhaseRibbon(Canvas canvas, float w, float h) {
@@ -239,12 +257,20 @@ public class DuelView extends View {
         for (int i = 0; i < labels.length; i++) {
             float x = 7 + i * (cellW + gap);
             boolean active = duel.getPhase() == phases[i];
+            boolean cursor = phaseRibbonFocused && selectedPhaseIndex == i;
             paint.setColor(active ? 0xffffc857 : 0xff29465a);
             canvas.drawRoundRect(new RectF(x, top, x + cellW, bottom), 5, 5, paint);
             paint.setColor(active ? 0xff172536 : 0xffd8e3eb);
             paint.setTextAlign(Paint.Align.CENTER);
             paint.setTextSize(Math.max(8, Math.min(11, w * 0.027f)));
             canvas.drawText(labels[i], x + cellW / 2f, top + 17, paint);
+            if (cursor) {
+                paint.setStyle(Paint.Style.STROKE);
+                paint.setStrokeWidth(2.5f);
+                paint.setColor(0xffffffff);
+                canvas.drawRoundRect(new RectF(x - 1, top - 1, x + cellW + 1, bottom + 1), 6, 6, paint);
+                paint.setStyle(Paint.Style.FILL);
+            }
         }
         paint.setTextAlign(Paint.Align.LEFT);
     }
