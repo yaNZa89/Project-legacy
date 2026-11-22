@@ -29,12 +29,13 @@
 - [ ] Implement Pendulum Zones, scale placement, and Pendulum Summon rules
 - [ ] Link Summon, Link Monster Zones, Extra Monster Zones, and Link-related card support — all deferred until the other systems are stable
 
-## Milestone 4 — Synergistic card content
+## Milestone 4 — Synergistic card content and deck building
 - [ ] Build coherent card packages/archetypes before maximizing raw card count
 - [ ] Prioritize cards that support one another: searchers, summon enablers, materials, extenders, protection, recovery, and payoff cards
 - [ ] Preserve and use Monster Type and Attribute as meaningful deck-building and effect dimensions (including Warrior, Dragon, DARK, LIGHT, and other categories)
 - [ ] Add matching Spell/Trap support and counterplay for each archetype
 - [ ] Add distinct CPU deck strategies that use the card synergies
+- [ ] Do not implement a banlist, forbidden/limited card list, or official restriction tiers
 - [ ] Expand the catalog in tested stages; long-term scale target is 10,000+ cards, not a requirement for the first playable release
 - [ ] Keep card definitions/text separate from optional artwork and measure actual APK size against the 50 MB design ceiling
 
