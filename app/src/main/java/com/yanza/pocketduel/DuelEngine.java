@@ -146,6 +146,9 @@ public final class DuelEngine {
             } else if (attacker.attack == playerField[target].attack) {
                 playerField[target] = null;
                 cpuField[i] = null;
+            } else {
+                // A weaker attacking monster is destroyed by the stronger defender.
+                cpuField[i] = null;
             }
             cpuAttacked[i] = true;
             checkWinner();
