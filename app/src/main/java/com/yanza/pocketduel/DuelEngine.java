@@ -28,10 +28,12 @@ public final class DuelEngine {
     private String message = "Duel started";
 
     public DuelEngine() {
-        for (CardDefinition card : CardCatalog.all()) {
-            if (card.kind == CardDefinition.Kind.MONSTER) {
-                playerDeck.add(card);
-                cpuDeck.add(card);
+        for (int copy = 0; copy < 3; copy++) {
+            for (CardDefinition card : CardCatalog.all()) {
+                if (card.kind == CardDefinition.Kind.MONSTER) {
+                    playerDeck.add(card);
+                    cpuDeck.add(card);
+                }
             }
         }
         // Fixed order makes the first prototype reproducible while rules are tested.
