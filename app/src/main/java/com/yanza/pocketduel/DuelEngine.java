@@ -63,6 +63,8 @@ public final class DuelEngine {
         playerField[slot] = card;
         playerNormalSummons++;
         message = card.name + " summoned to slot " + (slot + 1);
+        String effectMessage = CardEffectResolver.resolveOnSummon(this, card);
+        if (effectMessage.length() > 0) message += " - " + effectMessage;
         return true;
     }
 
