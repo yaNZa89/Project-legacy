@@ -15,7 +15,10 @@
 - [ ] Win/loss conditions and restart flow
 - [ ] Effect queue and chain resolution
 
-## Milestone 3 — Summon systems (Link deferred)
+## Milestone 3 — Field layout and summon systems (Link deferred)
+- [ ] Design the portrait duel field with standard Monster Zones and Spell/Trap Zones
+- [ ] Include two clearly visible, dedicated Pendulum Zones (left and right) for both players
+- [ ] Do not create Link Monster Zones, Extra Monster Zones, or Link-arrow placement rules in the current version
 - [x] Preserve Monster Type and Attribute in card data
 - [x] Add Pendulum scale metadata and original Pendulum test cards
 - [ ] Complete Tribute Summon validation and selection
@@ -23,8 +26,8 @@
 - [ ] Fusion Summon
 - [ ] Synchro Summon
 - [ ] Xyz Summon
-- [ ] Pendulum Zones and Pendulum Summon rules
-- [ ] Link Summon and Link-related card support — deferred until the other systems are stable
+- [ ] Implement Pendulum Zones, scale placement, and Pendulum Summon rules
+- [ ] Link Summon, Link Monster Zones, Extra Monster Zones, and Link-related card support — all deferred until the other systems are stable
 
 ## Milestone 4 — Synergistic card content
 - [ ] Build coherent card packages/archetypes before maximizing raw card count
@@ -38,6 +41,6 @@
 ## Milestone 5 — Device controls and polish
 - [ ] Configurable key map and actual device keycode test
 - [ ] Sound, animation, settings, save/load
-- [ ] Regression tests for rules, card effects, deck consistency, and API 19 compatibility
+- [ ] Regression tests for rules, card effects, deck consistency, field zones, and API 19 compatibility
 
 All current card names and sample data are original placeholders. This project is an original prototype and does not include proprietary card artwork or card text.
