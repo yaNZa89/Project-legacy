@@ -132,21 +132,49 @@ public class DuelView extends View {
     }
 
     private void drawField(Canvas canvas, CardDefinition[] field, float y, float w, boolean playerSide) {
-        float gap = 7, cw = (w - 28 - gap * 2) / 3f, ch = getHeight() * 0.105f;
+        float gap = 4;
+        float sideW = w * 0.135f;
+        float monsterStart = 7 + sideW + gap;
+        float monsterW = (w - 14 - sideW * 2 - gap * 4) / 3f;
+        float ch = getHeight() * 0.105f;
+
+        // Dedicated Pendulum Zones are always visible on both sides of each field.
+        drawPendulumZone(canvas, 7, y, sideW, ch, playerSide ? "P-L" : "CPU P-L");
+        drawPendulumZone(canvas, w - 7 - sideW, y, sideW, ch, playerSide ? "P-R" : "CPU P-R");
+
         for (int i = 0; i < field.length; i++) {
-            float x = 7 + i * (cw + gap);
-            RectF rect = new RectF(x, y, x + cw, y + ch);
-            boolean selected = playerSide && duel.getPhase() == DuelEngine.Phase.BATTLE && choosingMonster && selectedMonster == i;
+            float x = monsterStart + i * (monsterW + gap);
+            RectF rect = new RectF(x, y, x + monsterW, y + ch);
+            boolean selected = playerSide && duel.getPhase() == DuelEngine.Phase.BATTLE
+                    && choosingMonster && selectedMonster == i;
             paint.setColor(selected ? 0xffffc857 : field[i] == null ? 0xff31495b : 0xffbd9653);
             canvas.drawRoundRect(rect, 7, 7, paint);
             if (field[i] != null) {
                 paint.setColor(0xff101b2b);
-                paint.setTextSize(Math.max(9, w * 0.026f));
-                canvas.drawText(shortName(field[i].name), x + 4, y + 18, paint);
-                canvas.drawText("ATK " + field[i].attack, x + 4, y + 36, paint);
-                canvas.drawText("DEF " + field[i].defense, x + 4, y + 51, paint);
+                paint.setTextSize(Math.max(8, w * 0.023f));
+                canvas.drawText(shortName(field[i].name), x + 3, y + 17, paint);
+                canvas.drawText("ATK " + field[i].attack, x + 3, y + 34, paint);
+                canvas.drawText("DEF " + field[i].defense, x + 3, y + 49, paint);
+            } else {
+                paint.setColor(0xff9aabba);
+                paint.setTextSize(Math.max(8, w * 0.022f));
+                canvas.drawText("MON", x + 5, y + ch * 0.58f, paint);
             }
         }
+    }
+
+    private void drawPendulumZone(Canvas canvas, float x, float y, float width,
+                                  float height, String label) {
+        RectF zone = new RectF(x, y, x + width, y + height);
+        paint.setColor(0xff294f68);
+        canvas.drawRoundRect(zone, 6, 6, paint);
+        paint.setColor(0xffd9eaf4);
+        paint.setTextSize(Math.max(8, getWidth() * 0.021f));
+        canvas.drawText("PEND", x + 3, y + height * 0.43f, paint);
+        canvas.drawText("ZONE", x + 3, y + height * 0.62f, paint);
+        paint.setColor(0xff9fc7dc);
+        paint.setTextSize(Math.max(7, getWidth() * 0.017f));
+        canvas.drawText(label, x + 2, y + height * 0.82f, paint);
     }
 
     private void drawHand(Canvas canvas, float w, float h) {
