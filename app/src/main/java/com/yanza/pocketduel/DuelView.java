@@ -19,6 +19,8 @@ public class DuelView extends View {
     private int selectedDeck;
     private boolean choosingMonster;
     private boolean phaseMenu;
+    private boolean summonMenu;
+    private int selectedSummonAction;
     private int selectedPhaseIndex;
     private boolean deckBrowser;
     private int browsePile;
@@ -61,6 +63,20 @@ public class DuelView extends View {
                 if (!deck.isEmpty()) openDetails(deck.get(selectedDeck));
             } else if (key == KeyEvent.KEYCODE_POUND || key == KeyEvent.KEYCODE_BACK) {
                 deckBrowser = false;
+            } else return false;
+            invalidate();
+            return true;
+        }
+
+        if (summonMenu) {
+            if (key == KeyEvent.KEYCODE_4 || key == KeyEvent.KEYCODE_DPAD_LEFT
+                    || key == KeyEvent.KEYCODE_6 || key == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                selectedSummonAction = 1 - selectedSummonAction;
+            } else if (key == KeyEvent.KEYCODE_5 || key == KeyEvent.KEYCODE_DPAD_CENTER
+                    || key == KeyEvent.KEYCODE_ENTER) {
+                executeSummonAction();
+            } else if (key == KeyEvent.KEYCODE_POUND || key == KeyEvent.KEYCODE_BACK) {
+                summonMenu = false;
             } else return false;
             invalidate();
             return true;
@@ -157,7 +173,10 @@ public class DuelView extends View {
                 attackSelected();
             } else {
                 CardDefinition[] field = duel.getPlayerField();
-                if (field[selectedMonster] != null) openDetails(field[selectedMonster]);
+                if (field[selectedMonster] != null) {
+                    if (duel.isPlayerMonsterFaceDown(selectedMonster)) hint = "Your monster is face-down";
+                    else openDetails(field[selectedMonster]);
+                }
                 else hint = "Empty Monster Zone " + (selectedMonster + 1);
             }
         } else if (navRow == 1) {
@@ -178,11 +197,30 @@ public class DuelView extends View {
             if (duel.getPhase() == DuelEngine.Phase.BATTLE) {
                 hint = "Select a Monster Zone to attack";
             } else {
-                duel.summonFromHand(selectedHand);
-                selectedHand = clamp(selectedHand, 0, Math.max(0, duel.getPlayerHand().size() - 1));
-                navColumn = selectedHand;
+                summonMenu = true;
+                selectedSummonAction = 0;
             }
         }
+    }
+
+    private void executeSummonAction() {
+        List<CardDefinition> hand = duel.getPlayerHand();
+        if (selectedHand < 0 || selectedHand >= hand.size()) {
+            hint = "Select a monster in your hand";
+        } else {
+            CardDefinition card = hand.get(selectedHand);
+            if (selectedSummonAction == 0) {
+                if (card.level >= 5) duel.tributeSummonFromHand(selectedHand);
+                else duel.summonFromHand(selectedHand);
+            } else {
+                if (card.level >= 5) duel.tributeSetFromHand(selectedHand);
+                else duel.setFromHand(selectedHand);
+            }
+            selectedHand = clamp(selectedHand, 0, Math.max(0, duel.getPlayerHand().size() - 1));
+            navColumn = selectedHand;
+            hint = duel.getMessage();
+        }
+        summonMenu = false;
     }
 
     private List<CardDefinition> getBrowseCards() {
@@ -272,8 +310,34 @@ public class DuelView extends View {
         if (deckBrowser) drawDeckBrowser(canvas, w, h);
         if (phaseMenu) drawPhaseMenu(canvas, w, h);
         if (detailCard != null) drawCardDetails(canvas, w, h);
+        if (summonMenu) drawSummonMenu(canvas, w, h);
     }
 
+
+    private void drawSummonMenu(Canvas canvas, float w, float h) {
+        float left = w * 0.12f, right = w * 0.88f;
+        float top = h * 0.42f;
+        paint.setColor(0xee14283a);
+        canvas.drawRoundRect(new RectF(left, top, right, top + 104), 12, 12, paint);
+        paint.setTextAlign(Paint.Align.CENTER);
+        paint.setColor(0xffffd477);
+        paint.setTextSize(16);
+        canvas.drawText("MONSTER ACTION", w / 2f, top + 25, paint);
+        String[] labels = {"SUMMON", "SET FACE-DOWN"};
+        for (int i = 0; i < labels.length; i++) {
+            float x = left + 10 + i * ((right - left - 25) / 2f);
+            float width = (right - left - 25) / 2f;
+            paint.setColor(selectedSummonAction == i ? 0xffffc857 : 0xff29465a);
+            canvas.drawRoundRect(new RectF(x, top + 38, x + width, top + 72), 6, 6, paint);
+            paint.setColor(selectedSummonAction == i ? 0xff172536 : 0xfff0f5f8);
+            paint.setTextSize(Math.max(9, w * 0.028f));
+            canvas.drawText(labels[i], x + width / 2f, top + 60, paint);
+        }
+        paint.setColor(0xffd9eaf4);
+        paint.setTextSize(10);
+        canvas.drawText("4/6 choose | 5 confirm | # cancel", w / 2f, top + 94, paint);
+        paint.setTextAlign(Paint.Align.LEFT);
+    }
 
     private int phaseIndex(DuelEngine.Phase phase) {
         switch (phase) {
@@ -411,8 +475,8 @@ public class DuelView extends View {
             canvas.drawRoundRect(rect, 4, 4, paint);
             paint.setColor(card == null ? 0xffc6d5df : 0xff101b2b);
             paint.setTextSize(Math.max(7, getWidth() * 0.019f));
-            boolean hiddenOpponentCard = !playerSide && monsterRow
-                    && duel.isCpuMonsterFaceDown(i);
+            boolean hiddenOpponentCard = monsterRow && (playerSide
+                    ? duel.isPlayerMonsterFaceDown(i) : duel.isCpuMonsterFaceDown(i));
             String label = monsterRow ? (card == null ? "M" + (i + 1)
                     : hiddenOpponentCard ? "SET" : shortName(card.name, 7))
                     : "S/T " + (i + 1);
