@@ -30,9 +30,9 @@ public class DuelView extends View {
 
     public boolean handleKey(int key) {
         if (detailCard != null) {
-            if (key == KeyEvent.KEYCODE_7 || key == KeyEvent.KEYCODE_DPAD_UP) {
+            if (key == KeyEvent.KEYCODE_7) {
                 detailScroll = Math.max(0, detailScroll - 1);
-            } else if (key == KeyEvent.KEYCODE_9 || key == KeyEvent.KEYCODE_DPAD_DOWN) {
+            } else if (key == KeyEvent.KEYCODE_9) {
                 detailScroll++;
             } else if (key == KeyEvent.KEYCODE_POUND || key == KeyEvent.KEYCODE_BACK || key == KeyEvent.KEYCODE_DPAD_CENTER
                     || key == KeyEvent.KEYCODE_ENTER || key == KeyEvent.KEYCODE_5) {
@@ -45,9 +45,11 @@ public class DuelView extends View {
 
         if (deckBrowser) {
             List<CardDefinition> deck = duel.getPlayerDeck();
-            if (key == KeyEvent.KEYCODE_DPAD_UP || key == KeyEvent.KEYCODE_DPAD_LEFT) {
+            if (key == KeyEvent.KEYCODE_DPAD_UP || key == KeyEvent.KEYCODE_DPAD_LEFT
+                    || key == KeyEvent.KEYCODE_2 || key == KeyEvent.KEYCODE_4) {
                 selectedDeck = Math.max(0, selectedDeck - 1);
-            } else if (key == KeyEvent.KEYCODE_DPAD_DOWN || key == KeyEvent.KEYCODE_DPAD_RIGHT) {
+            } else if (key == KeyEvent.KEYCODE_DPAD_DOWN || key == KeyEvent.KEYCODE_DPAD_RIGHT
+                    || key == KeyEvent.KEYCODE_8 || key == KeyEvent.KEYCODE_6) {
                 selectedDeck = Math.min(Math.max(0, deck.size() - 1), selectedDeck + 1);
             } else if (key == KeyEvent.KEYCODE_DPAD_CENTER
                     || key == KeyEvent.KEYCODE_ENTER || key == KeyEvent.KEYCODE_5) {
@@ -69,8 +71,9 @@ public class DuelView extends View {
             return true;
         }
 
-        if (key == KeyEvent.KEYCODE_DPAD_LEFT || key == KeyEvent.KEYCODE_DPAD_RIGHT) {
-            int direction = key == KeyEvent.KEYCODE_DPAD_LEFT ? -1 : 1;
+        if (key == KeyEvent.KEYCODE_DPAD_LEFT || key == KeyEvent.KEYCODE_DPAD_RIGHT
+                || key == KeyEvent.KEYCODE_4 || key == KeyEvent.KEYCODE_6) {
+            int direction = (key == KeyEvent.KEYCODE_DPAD_LEFT || key == KeyEvent.KEYCODE_4) ? -1 : 1;
             if (duel.getPhase() == DuelEngine.Phase.BATTLE || choosingMonster) {
                 selectedMonster = clamp(selectedMonster + direction, 0, 4);
                 choosingMonster = true;
@@ -79,14 +82,15 @@ public class DuelView extends View {
                         Math.max(0, duel.getPlayerHand().size() - 1));
                 choosingMonster = false;
             }
-        } else if (key == KeyEvent.KEYCODE_DPAD_UP || key == KeyEvent.KEYCODE_DPAD_DOWN) {
+        } else if (key == KeyEvent.KEYCODE_DPAD_UP || key == KeyEvent.KEYCODE_DPAD_DOWN
+                || key == KeyEvent.KEYCODE_2 || key == KeyEvent.KEYCODE_8) {
+            boolean moveUp = key == KeyEvent.KEYCODE_DPAD_UP || key == KeyEvent.KEYCODE_2;
             if (duel.getPhase() != DuelEngine.Phase.BATTLE) {
                 choosingMonster = !choosingMonster;
-                hint = choosingMonster ? "Monster Zone selected - press 7 to inspect"
-                        : "Hand selected - press 7 to inspect";
+                hint = choosingMonster ? "Monster Zone selected - press 5 to inspect"
+                        : "Hand selected - press 5 to inspect";
             } else {
-                selectedMonster = clamp(selectedMonster
-                        + (key == KeyEvent.KEYCODE_DPAD_UP ? -1 : 1), 0, 4);
+                selectedMonster = clamp(selectedMonster + (moveUp ? -1 : 1), 0, 4);
             }
         } else if (key == KeyEvent.KEYCODE_STAR) {
             deckBrowser = true;
@@ -105,17 +109,10 @@ public class DuelView extends View {
                 selectedHand = Math.min(selectedHand,
                         Math.max(0, duel.getPlayerHand().size() - 1));
             }
-        } else if (key == KeyEvent.KEYCODE_8) {
-            duel.tributeSummonFromHand(selectedHand);
-            selectedHand = Math.min(selectedHand,
-                    Math.max(0, duel.getPlayerHand().size() - 1));
         } else if (key == KeyEvent.KEYCODE_9) {
             duel.enterBattlePhase();
             choosingMonster = true;
-            hint = "Battle Phase: D-pad choose monster, 6 attack";
-        } else if (key == KeyEvent.KEYCODE_6) {
-            if (duel.getPhase() != DuelEngine.Phase.BATTLE) duel.enterBattlePhase();
-            attackSelected();
+            hint = "Battle Phase: 2/8 choose lane, 4/6 choose monster, 5 confirm";
         } else if (key == KeyEvent.KEYCODE_0) {
             duel.endPlayerTurn();
             selectedHand = 0;
@@ -201,7 +198,7 @@ public class DuelView extends View {
         paint.setColor(0xfff3f5f7);
         paint.setTextSize(Math.max(10, w * 0.028f));
         canvas.drawText(hint, 14, h - 48, paint);
-        canvas.drawText("5 summon | * deck/menu | # back | 7/9 scroll | 8 tribute | 6 attack | 0 end", 14, h - 20, paint);
+        canvas.drawText("2/4/6/8 move | 5 action | 7/9 card scroll | * deck | # back | 0 end", 14, h - 20, paint);
 
         if (deckBrowser) drawDeckBrowser(canvas, w, h);
         if (detailCard != null) drawCardDetails(canvas, w, h);
@@ -280,7 +277,7 @@ public class DuelView extends View {
             canvas.drawText((i + 1) + ". " + deck.get(i).name, 26, 120 + (i - first) * 22, paint);
         }
         paint.setColor(0xffd9eaf4);
-        canvas.drawText("Up/Down browse | 5 details | # close", 25, h - 108, paint);
+        canvas.drawText("2/8 browse | 5 details | # close", 25, h - 108, paint);
     }
 
     private void drawCardDetails(Canvas canvas, float w, float h) {
@@ -323,7 +320,7 @@ public class DuelView extends View {
         }
         paint.setColor(0xffb9cad5);
         paint.setTextSize(Math.max(10, w * 0.027f));
-        canvas.drawText("7/Up scroll up | 9/Down scroll down | 5/# close",
+        canvas.drawText("7 scroll up | 9 scroll down | 5/# close",
                 24, h - 65, paint);
     }
 
