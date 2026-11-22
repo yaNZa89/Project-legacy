@@ -10,6 +10,8 @@ public final class DuelEngine {
 
     private final List<CardDefinition> playerDeck = new ArrayList<CardDefinition>();
     private final List<CardDefinition> cpuDeck = new ArrayList<CardDefinition>();
+    private final List<CardDefinition> playerExtraDeck = new ArrayList<CardDefinition>();
+    private final List<CardDefinition> cpuExtraDeck = new ArrayList<CardDefinition>();
     private final List<CardDefinition> playerHand = new ArrayList<CardDefinition>();
     private final List<CardDefinition> cpuHand = new ArrayList<CardDefinition>();
     private final List<CardDefinition> playerGraveyard = new ArrayList<CardDefinition>();
@@ -30,8 +32,13 @@ public final class DuelEngine {
         for (int copy = 0; copy < 3; copy++) {
             for (CardDefinition card : CardCatalog.all()) {
                 if (card.kind == CardDefinition.Kind.MONSTER) {
-                    playerDeck.add(card);
-                    cpuDeck.add(card);
+                    if (isExtraDeckMonster(card)) {
+                        playerExtraDeck.add(card);
+                        cpuExtraDeck.add(card);
+                    } else {
+                        playerDeck.add(card);
+                        cpuDeck.add(card);
+                    }
                 }
             }
         }
@@ -44,6 +51,7 @@ public final class DuelEngine {
 
     public List<CardDefinition> getPlayerHand() { return Collections.unmodifiableList(playerHand); }
     public List<CardDefinition> getPlayerDeck() { return Collections.unmodifiableList(playerDeck); }
+    public List<CardDefinition> getPlayerExtraDeck() { return Collections.unmodifiableList(playerExtraDeck); }
     public List<CardDefinition> getPlayerGraveyard() { return Collections.unmodifiableList(playerGraveyard); }
     public List<CardDefinition> getPlayerBanished() { return Collections.unmodifiableList(playerBanished); }
     public boolean banishFromGraveyard(int index) {
@@ -128,6 +136,13 @@ public final class DuelEngine {
         if (next == Phase.BATTLE) message += ": choose a monster, then press 5";
         if (next == Phase.END) message += ": press 5 to finish your turn";
         return true;
+    }
+
+    private boolean isExtraDeckMonster(CardDefinition card) {
+        return card.summonMethod == CardDefinition.SummonMethod.FUSION
+                || card.summonMethod == CardDefinition.SummonMethod.SYNCHRO
+                || card.summonMethod == CardDefinition.SummonMethod.XYZ
+                || card.summonMethod == CardDefinition.SummonMethod.LINK;
     }
 
     private boolean isMainPhase() {
