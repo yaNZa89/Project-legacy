@@ -159,6 +159,12 @@ public final class DuelEngine {
         clearAttacks(cpuAttacked);
     }
 
+    boolean drawOneForEffect() {
+        int before = playerHand.size();
+        draw(playerDeck, playerHand, 1);
+        return playerHand.size() > before;
+    }
+
     private void draw(List<CardDefinition> deck, List<CardDefinition> hand, int count) {
         for (int i = 0; i < count && !deck.isEmpty() && hand.size() < 7; i++) {
             hand.add(deck.remove(0));
