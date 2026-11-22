@@ -1,8 +1,7 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace "com.yanza.pocketduel"
-    compileSdkVersion 33
+    compileSdkVersion 28
 
     defaultConfig {
         applicationId "com.yanza.pocketduel"
