@@ -324,7 +324,6 @@ public class DuelView extends View {
             options.add(DuelEngine.Phase.MAIN1);
         } else if (duel.getPhase() == DuelEngine.Phase.MAIN1) {
             if (duel.getTurn() > 1) options.add(DuelEngine.Phase.BATTLE);
-            options.add(DuelEngine.Phase.MAIN2);
             options.add(DuelEngine.Phase.END);
         } else if (duel.getPhase() == DuelEngine.Phase.BATTLE) {
             options.add(DuelEngine.Phase.MAIN2);
