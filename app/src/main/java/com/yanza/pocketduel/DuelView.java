@@ -90,6 +90,7 @@ public class DuelView extends View {
                 || key == KeyEvent.KEYCODE_2 || key == KeyEvent.KEYCODE_8) {
             boolean moveUp = key == KeyEvent.KEYCODE_DPAD_UP || key == KeyEvent.KEYCODE_2;
             phaseRibbonFocused = !moveUp;
+            if (phaseRibbonFocused) selectedPhaseIndex = phaseIndex(duel.getPhase());
             if (!phaseRibbonFocused && duel.getPhase() != DuelEngine.Phase.BATTLE) {
                 choosingMonster = !choosingMonster;
                 hint = choosingMonster ? "Monster Zone selected - press 5 to inspect"
