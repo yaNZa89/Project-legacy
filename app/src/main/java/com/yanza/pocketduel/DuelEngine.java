@@ -180,14 +180,30 @@ public final class DuelEngine {
                 return reject("Choose an opposing monster");
             CardDefinition attacker = playerField[attackerSlot];
             CardDefinition defender = cpuField[defenderSlot];
-            if (attacker.attack > defender.attack) {
-                cpuLP = Math.max(0, cpuLP - (attacker.attack - defender.attack));
+            boolean wasFaceDown = cpuMonsterFaceDown[defenderSlot];
+            cpuMonsterFaceDown[defenderSlot] = false;
+            int defenderValue = wasFaceDown ? defender.defense : defender.attack;
+            if (wasFaceDown) {
+                if (attacker.attack > defenderValue) {
+                    playerGraveyard.add(defender);
+                    cpuField[defenderSlot] = null;
+                    message = "Face-down monster revealed and destroyed";
+                } else if (attacker.attack < defenderValue) {
+                    playerGraveyard.add(attacker);
+                    playerField[attackerSlot] = null;
+                    message = "Attacker fails to overcome the revealed Defense Position monster";
+                } else {
+                    playerGraveyard.add(attacker);
+                    playerField[attackerSlot] = null;
+                    message = "Defense Position monster survives the equal battle";
+                }
+            } else if (attacker.attack > defenderValue) {
+                cpuLP = Math.max(0, cpuLP - (attacker.attack - defenderValue));
                 playerGraveyard.add(defender);
                 cpuField[defenderSlot] = null;
-                cpuMonsterFaceDown[defenderSlot] = false;
                 message = attacker.name + " wins the battle";
-            } else if (attacker.attack < defender.attack) {
-                playerLP = Math.max(0, playerLP - (defender.attack - attacker.attack));
+            } else if (attacker.attack < defenderValue) {
+                playerLP = Math.max(0, playerLP - (defenderValue - attacker.attack));
                 playerGraveyard.add(attacker);
                 playerField[attackerSlot] = null;
                 message = attacker.name + " loses the battle";
@@ -195,7 +211,6 @@ public final class DuelEngine {
                 playerGraveyard.add(attacker);
                 playerField[attackerSlot] = null;
                 cpuField[defenderSlot] = null;
-                cpuMonsterFaceDown[defenderSlot] = false;
                 message = "Both monsters are removed";
             }
         } else {
@@ -235,7 +250,13 @@ public final class DuelEngine {
                     strongestIndex = i;
                 }
             }
-            if (strongestIndex >= 0) cpuField[firstEmpty(cpuField)] = cpuHand.remove(strongestIndex);
+            if (strongestIndex >= 0) {
+                int slot = firstEmpty(cpuField);
+                CardDefinition choice = cpuHand.get(strongestIndex);
+                cpuField[slot] = cpuHand.remove(strongestIndex);
+                cpuMonsterFaceDown[slot] = choice.attack <= 1000;
+                message = cpuMonsterFaceDown[slot] ? "Opponent Set a monster face-down" : "Opponent Normal Summoned a monster";
+            }
         }
         for (int i = 0; i < cpuField.length; i++) {
             CardDefinition attacker = cpuField[i];
