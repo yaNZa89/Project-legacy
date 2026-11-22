@@ -21,6 +21,9 @@ public class DuelView extends View {
     private boolean phaseMenu;
     private int selectedPhaseIndex;
     private boolean deckBrowser;
+    private int browsePile;
+    private int navRow = 3;
+    private int navColumn;
     private CardDefinition detailCard;
     private int detailScroll;
     private String hint = "Keypad: 2/8 row | 4/6 cursor | 5 action | * phases | # back";
@@ -46,7 +49,7 @@ public class DuelView extends View {
         }
 
         if (deckBrowser) {
-            List<CardDefinition> deck = duel.getPlayerDeck();
+            List<CardDefinition> deck = getBrowseCards();
             if (key == KeyEvent.KEYCODE_DPAD_UP || key == KeyEvent.KEYCODE_DPAD_LEFT
                     || key == KeyEvent.KEYCODE_2 || key == KeyEvent.KEYCODE_4) {
                 selectedDeck = Math.max(0, selectedDeck - 1);
@@ -92,47 +95,22 @@ public class DuelView extends View {
         if (key == KeyEvent.KEYCODE_DPAD_LEFT || key == KeyEvent.KEYCODE_DPAD_RIGHT
                 || key == KeyEvent.KEYCODE_4 || key == KeyEvent.KEYCODE_6) {
             int direction = (key == KeyEvent.KEYCODE_DPAD_LEFT || key == KeyEvent.KEYCODE_4) ? -1 : 1;
-            if (duel.getPhase() == DuelEngine.Phase.BATTLE || choosingMonster) {
-                selectedMonster = clamp(selectedMonster + direction, 0, 4);
-                choosingMonster = true;
-            } else {
-                selectedHand = clamp(selectedHand + direction, 0,
-                        Math.max(0, duel.getPlayerHand().size() - 1));
-                choosingMonster = false;
-            }
+            navColumn = clamp(navColumn + direction, 0, rowMaxColumn(navRow));
+            syncNavigationSelection();
         } else if (key == KeyEvent.KEYCODE_DPAD_UP || key == KeyEvent.KEYCODE_DPAD_DOWN
                 || key == KeyEvent.KEYCODE_2 || key == KeyEvent.KEYCODE_8) {
-            boolean moveUp = key == KeyEvent.KEYCODE_DPAD_UP || key == KeyEvent.KEYCODE_2;
-            if (duel.getPhase() != DuelEngine.Phase.BATTLE) {
-                choosingMonster = !choosingMonster;
-                hint = choosingMonster ? "Monster row selected - 4/6 move, 5 action"
-                        : "Hand selected - 4/6 move, 5 action";
-            } else {
-                selectedMonster = clamp(selectedMonster + (moveUp ? -1 : 1), 0, 4);
-            }
+            int direction = (key == KeyEvent.KEYCODE_DPAD_UP || key == KeyEvent.KEYCODE_2) ? -1 : 1;
+            navRow = clamp(navRow + direction, 0, 3);
+            navColumn = clamp(navColumn, 0, rowMaxColumn(navRow));
+            syncNavigationSelection();
         } else if (key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER
                 || key == KeyEvent.KEYCODE_5) {
-            if (duel.getPhase() == DuelEngine.Phase.END) {
-                duel.endPlayerTurn();
-                selectedHand = 0;
-                selectedMonster = 0;
-                choosingMonster = false;
-            } else if (duel.getPhase() == DuelEngine.Phase.BATTLE) {
-                attackSelected();
-            } else if (choosingMonster) {
-                CardDefinition[] field = duel.getPlayerField();
-                if (selectedMonster >= 0 && selectedMonster < field.length
-                        && field[selectedMonster] != null) openDetails(field[selectedMonster]);
-                else hint = "Empty Monster Zone";
-            } else {
-                duel.summonFromHand(selectedHand);
-                selectedHand = Math.min(selectedHand,
-                        Math.max(0, duel.getPlayerHand().size() - 1));
-            }
+            activateArenaSelection();
         } else if (key == KeyEvent.KEYCODE_POUND || key == KeyEvent.KEYCODE_BACK) {
             phaseMenu = false;
-            choosingMonster = false;
-            selectedHand = 0;
+            navRow = 3;
+            navColumn = 0;
+            syncNavigationSelection();
         } else if (key == KeyEvent.KEYCODE_STAR) {
             phaseMenu = true;
             selectedPhaseIndex = phaseIndex(duel.getPhase());
@@ -141,6 +119,86 @@ public class DuelView extends View {
         if (detailCard == null && !deckBrowser && !phaseMenu) hint = duel.getMessage();
         invalidate();
         return true;
+    }
+
+    private int rowMaxColumn(int row) {
+        return row == 0 || row == 1 ? 6 : 4;
+    }
+
+    private void syncNavigationSelection() {
+        choosingMonster = navRow == 0;
+        if (navRow == 0 && navColumn >= 1 && navColumn <= 5) {
+            selectedMonster = navColumn - 1;
+        }
+        if (navRow == 3) selectedHand = clamp(navColumn, 0,
+                Math.max(0, duel.getPlayerHand().size() - 1));
+        hint = navRow == 0 ? "Monster/Pendulum row"
+                : navRow == 1 ? "Spell/Trap row"
+                : navRow == 2 ? "Deck and pile row" : "Hand row";
+    }
+
+    private void activateArenaSelection() {
+        if (duel.getPhase() == DuelEngine.Phase.END) {
+            if (navRow == 3) {
+                duel.endPlayerTurn();
+                navRow = 3;
+                navColumn = 0;
+                syncNavigationSelection();
+            } else hint = "Choose the hand or phase menu";
+            return;
+        }
+        if (navRow == 0) {
+            if (navColumn == 0 || navColumn == 6) {
+                hint = "Pendulum Zone selected - Pendulum placement is not implemented yet";
+                return;
+            }
+            selectedMonster = navColumn - 1;
+            if (duel.getPhase() == DuelEngine.Phase.BATTLE) {
+                attackSelected();
+            } else {
+                CardDefinition[] field = duel.getPlayerField();
+                if (field[selectedMonster] != null) openDetails(field[selectedMonster]);
+                else hint = "Empty Monster Zone " + (selectedMonster + 1);
+            }
+        } else if (navRow == 1) {
+            hint = navColumn == 0 || navColumn == 6
+                    ? "Pendulum Zone selected" : "Spell/Trap Zone " + navColumn + " is empty in this prototype";
+        } else if (navRow == 2) {
+            if (navColumn <= 3) {
+                browsePile = navColumn;
+                selectedDeck = 0;
+                deckBrowser = true;
+            } else {
+                hint = "Field Zone selected - card placement is not implemented yet";
+            }
+        } else {
+            selectedHand = clamp(navColumn, 0, Math.max(0, duel.getPlayerHand().size() - 1));
+            if (duel.getPhase() == DuelEngine.Phase.BATTLE) {
+                hint = "Select a Monster Zone to attack";
+            } else {
+                duel.summonFromHand(selectedHand);
+                selectedHand = clamp(selectedHand, 0, Math.max(0, duel.getPlayerHand().size() - 1));
+                navColumn = selectedHand;
+            }
+        }
+    }
+
+    private List<CardDefinition> getBrowseCards() {
+        switch (browsePile) {
+            case 1: return duel.getPlayerExtraDeck();
+            case 2: return duel.getPlayerGraveyard();
+            case 3: return duel.getPlayerBanished();
+            default: return duel.getPlayerDeck();
+        }
+    }
+
+    private String browseTitle() {
+        switch (browsePile) {
+            case 1: return "EXTRA DECK";
+            case 2: return "GRAVEYARD";
+            case 3: return "REMOVED";
+            default: return "MAIN DECK";
+        }
     }
 
     private int clamp(int value, int min, int max) {
@@ -207,7 +265,7 @@ public class DuelView extends View {
         paint.setColor(0xfff3f5f7);
         paint.setTextSize(Math.max(10, w * 0.028f));
         canvas.drawText(hint, 14, h - 48, paint);
-        canvas.drawText("2/8 row | 4/6 cursor | 5 action | * phases | # back", 14, h - 20, paint);
+        canvas.drawText("2/8 row | 4/6 cursor | 5 inspect | 7/9 text | * phases | # back", 14, h - 20, paint);
 
         if (deckBrowser) drawDeckBrowser(canvas, w, h);
         if (phaseMenu) drawPhaseMenu(canvas, w, h);
@@ -342,8 +400,7 @@ public class DuelView extends View {
             float x = start + i * (zoneW + gap);
             RectF rect = new RectF(x, y, x + zoneW, y + zoneH);
             CardDefinition card = monsterRow && monsters != null ? monsters[i] : null;
-            boolean selected = monsterRow && playerSide && selectedMonster == i
-                    && (choosingMonster || duel.getPhase() == DuelEngine.Phase.BATTLE);
+            boolean selected = monsterRow && playerSide && navRow == 0 && navColumn == i + 1;
             paint.setColor(selected ? 0xffffc857
                     : card == null ? (monsterRow ? 0xff31495b : 0xff29465a)
                     : 0xffbd9653);
@@ -370,9 +427,10 @@ public class DuelView extends View {
         float pileH = getHeight() * 0.045f;
         for (int i = 0; i < labels.length; i++) {
             float x = 7 + i * (pileW + gap);
-            paint.setColor(i == 4 ? 0xff294f68 : 0xff263d50);
+            boolean selected = navRow == 2 && navColumn == i;
+            paint.setColor(selected ? 0xffffc857 : (i == 4 ? 0xff294f68 : 0xff263d50));
             canvas.drawRoundRect(new RectF(x, y, x + pileW, y + pileH), 4, 4, paint);
-            paint.setColor(0xffd9eaf4);
+            paint.setColor(selected ? 0xff172536 : 0xffd9eaf4);
             paint.setTextSize(Math.max(7, Math.min(10, w * 0.025f)));
             canvas.drawText(labels[i], x + 3, y + pileH * 0.42f, paint);
             paint.setTextSize(Math.max(7, w * 0.020f));
@@ -398,10 +456,10 @@ public class DuelView extends View {
         for (int i = 0; i < hand.size() && i < 5; i++) {
             float x = 7 + i * (w - 14 - cardW) / 4f;
             RectF rect = new RectF(x, h * 0.715f, x + cardW, h * 0.715f + cardH);
-            paint.setColor(i == selectedHand && !choosingMonster
-                    ? 0xffffc857 : 0xff52758b);
+            boolean selected = navRow == 3 && navColumn == i;
+            paint.setColor(selected ? 0xffffc857 : 0xff52758b);
             canvas.drawRoundRect(rect, 7, 7, paint);
-            paint.setColor(0xff101b2b);
+            paint.setColor(selected ? 0xff172536 : 0xff101b2b);
             paint.setTextSize(Math.max(9, w * 0.024f));
             canvas.drawText(shortName(hand.get(i).name, 13), x + 4, rect.top + 18, paint);
             canvas.drawText("ATK " + hand.get(i).attack, x + 4, rect.top + 35, paint);
