@@ -13,13 +13,14 @@ An original, lightweight portrait card-duel prototype targeting Android 4.4 (API
 - Classic keypad controls with on-screen hints.
 
 ## Keypad
-- 2 / 4 / 6 / 8: move selection up / left / right / down, matching the D-pad
-- 5: confirm the selected action
+- 2: leave the phase ribbon and return to the duel area
+- 8: focus the visible phase ribbon
+- 4 / 6: move the phase cursor left / right while the ribbon is focused
+- 5: select the highlighted phase or perform the current contextual action
 - 7 / 9: scroll card details up / down while inspecting a card
-- *: advance to the next phase (temporary mapping; can be refined later)
 - #: back / close the current view
 
-The six phases remain visible in a compact ribbon at the bottom of the duel screen. The active phase is highlighted; no phase-selection popup covers the arena. Phase progression follows Draw → Standby → Main Phase 1 → Battle → Main Phase 2 → End. Battle Phase is skipped on the first turn. Press * to advance phases; press 5 during End Phase to finish the turn. The opening hand is already dealt, so the first Draw Phase does not draw an extra card.
+The six phases remain visible in a compact ribbon at the bottom of the duel screen. The active phase is highlighted; no phase-selection popup covers the arena. The phase ribbon is navigated directly: press 8 to focus it, 4 / 6 to move its cursor, and 5 to select a phase. Press 2 to return to the duel area. No popup or separate phase-advance key is used. Legal transitions are enforced by the duel engine; Battle Phase is unavailable on the first turn. From End Phase, move the cursor to Draw and press 5 to start the next turn. The opening hand is already dealt, so the first Draw Phase does not draw an extra card.
 
 
 ## Build
