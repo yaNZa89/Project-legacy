@@ -23,7 +23,7 @@ public class DuelView extends View {
     private boolean deckBrowser;
     private CardDefinition detailCard;
     private int detailScroll;
-    private String hint = "2/4/6/8 move | 5 action | * menu | # back";
+    private String hint = "Keypad: 2/8 row | 4/6 cursor | 5 action | * phases | # back";
 
     public DuelView(Context context) {
         super(context);
@@ -105,8 +105,8 @@ public class DuelView extends View {
             boolean moveUp = key == KeyEvent.KEYCODE_DPAD_UP || key == KeyEvent.KEYCODE_2;
             if (duel.getPhase() != DuelEngine.Phase.BATTLE) {
                 choosingMonster = !choosingMonster;
-                hint = choosingMonster ? "Monster Zone selected - press 5 to inspect"
-                        : "Hand selected - press 5 to inspect";
+                hint = choosingMonster ? "Monster row selected - 4/6 move, 5 action"
+                        : "Hand selected - 4/6 move, 5 action";
             } else {
                 selectedMonster = clamp(selectedMonster + (moveUp ? -1 : 1), 0, 4);
             }
@@ -211,7 +211,7 @@ public class DuelView extends View {
         paint.setColor(0xfff3f5f7);
         paint.setTextSize(Math.max(10, w * 0.028f));
         canvas.drawText(hint, 14, h - 48, paint);
-        canvas.drawText("* phase | 4/6 cursor | 5 select | # close", 14, h - 20, paint);
+        canvas.drawText("2/8 row | 4/6 cursor | 5 action | * phases | # back", 14, h - 20, paint);
 
         if (deckBrowser) drawDeckBrowser(canvas, w, h);
         if (phaseMenu) drawPhaseMenu(canvas, w, h);
