@@ -21,6 +21,7 @@ public final class DuelEngine {
     private final boolean[] playerAttacked = new boolean[5];
     private final boolean[] cpuAttacked = new boolean[5];
     private final boolean[] cpuMonsterFaceDown = new boolean[5];
+    private final boolean[] playerMonsterFaceDown = new boolean[5];
 
     private int playerLP = 8000;
     private int cpuLP = 8000;
@@ -71,6 +72,7 @@ public final class DuelEngine {
     public void setCpuMonsterFaceDown(int slot, boolean faceDown) {
         if (validSlot(slot) && cpuField[slot] != null) cpuMonsterFaceDown[slot] = faceDown;
     }
+    public boolean isPlayerMonsterFaceDown(int slot) { return validSlot(slot) && playerMonsterFaceDown[slot] && playerField[slot] != null; }
     public int getPlayerLP() { return playerLP; }
     public int getCpuLP() { return cpuLP; }
     public int getTurn() { return turn; }
@@ -92,6 +94,48 @@ public final class DuelEngine {
         message = card.name + " summoned to slot " + (slot + 1);
         String effectMessage = CardEffectResolver.resolveOnSummon(this, card);
         if (effectMessage.length() > 0) message += " - " + effectMessage;
+        return true;
+    }
+
+    /** Normal Set: no ATK/DEF threshold. */
+    public boolean setFromHand(int handIndex) {
+        if (!isMainPhase()) return reject("Setting is only allowed in Main Phase 1 or 2");
+        if (playerNormalSummons >= 1) return reject("Normal Summon/Set already used this turn");
+        if (handIndex < 0 || handIndex >= playerHand.size()) return reject("Select a card in your hand");
+        CardDefinition card = playerHand.get(handIndex);
+        if (card.kind != CardDefinition.Kind.MONSTER) return reject("Select a Monster");
+        if (card.level >= 5) return reject("Level 5+ monsters require Tribute Set");
+        int slot = firstEmpty(playerField);
+        if (slot < 0) return reject("Your monster area is full");
+        playerHand.remove(handIndex);
+        playerField[slot] = card;
+        playerMonsterFaceDown[slot] = true;
+        playerNormalSummons++;
+        message = "Monster Set face-down in Defense Position";
+        return true;
+    }
+
+    public boolean tributeSetFromHand(int handIndex) {
+        if (!isMainPhase()) return reject("Tribute Set requires Main Phase 1 or 2");
+        if (playerNormalSummons >= 1) return reject("Normal Summon/Set already used this turn");
+        if (handIndex < 0 || handIndex >= playerHand.size()) return reject("Select a card in your hand");
+        CardDefinition card = playerHand.get(handIndex);
+        if (card.kind != CardDefinition.Kind.MONSTER) return reject("Only monsters can be Set");
+        int required = card.level >= 7 ? 2 : card.level >= 5 ? 1 : 0;
+        if (required == 0) return reject("Use a regular Set for this monster");
+        if (countMonsters(playerField) < required) return reject("Need " + required + " monster tribute(s)");
+        for (int n = 0; n < required; n++) {
+            int tributeSlot = weakestMonster(playerField);
+            playerGraveyard.add(playerField[tributeSlot]);
+            playerMonsterFaceDown[tributeSlot] = false;
+            playerField[tributeSlot] = null;
+        }
+        int slot = firstEmpty(playerField);
+        playerHand.remove(handIndex);
+        playerField[slot] = card;
+        playerMonsterFaceDown[slot] = true;
+        playerNormalSummons++;
+        message = "Tribute Set face-down in Defense Position (" + required + " tribute)";
         return true;
     }
 
