@@ -6,7 +6,7 @@ import java.util.List;
 
 /** Platform-independent duel rules for the first prototype. */
 public final class DuelEngine {
-    public enum Phase { DRAW, MAIN, BATTLE, END, FINISHED }
+    public enum Phase { DRAW, STANDBY, MAIN1, BATTLE, MAIN2, END, FINISHED }
 
     private final List<CardDefinition> playerDeck = new ArrayList<CardDefinition>();
     private final List<CardDefinition> cpuDeck = new ArrayList<CardDefinition>();
@@ -36,8 +36,8 @@ public final class DuelEngine {
         Collections.reverse(cpuDeck);
         draw(playerDeck, playerHand, 5);
         draw(cpuDeck, cpuHand, 5);
-        phase = Phase.MAIN;
-        message = "Your Main Phase";
+        phase = Phase.MAIN1;
+        message = "Your Main Phase 1";
     }
 
     public List<CardDefinition> getPlayerHand() { return Collections.unmodifiableList(playerHand); }
@@ -51,7 +51,7 @@ public final class DuelEngine {
     public String getMessage() { return message; }
 
     public boolean summonFromHand(int handIndex) {
-        if (phase != Phase.MAIN) return reject("Summoning is only allowed in Main Phase");
+        if (!isMainPhase()) return reject("Summoning is only allowed in Main Phase 1 or 2");
         if (playerNormalSummons >= 1) return reject("Normal Summon already used this turn");
         if (handIndex < 0 || handIndex >= playerHand.size()) return reject("Select a card in your hand");
         CardDefinition card = playerHand.get(handIndex);
@@ -70,7 +70,7 @@ public final class DuelEngine {
 
     /** Tribute Summon: Level 5-6 needs one tribute; Level 7+ needs two. */
     public boolean tributeSummonFromHand(int handIndex) {
-        if (phase != Phase.MAIN) return reject("Tribute Summon requires Main Phase");
+        if (!isMainPhase()) return reject("Tribute Summon requires Main Phase 1 or 2");
         if (playerNormalSummons >= 1) return reject("Normal Summon already used this turn");
         if (handIndex < 0 || handIndex >= playerHand.size()) return reject("Select a card in your hand");
         CardDefinition card = playerHand.get(handIndex);
@@ -93,10 +93,39 @@ public final class DuelEngine {
         return true;
     }
 
-    public void enterBattlePhase() {
-        if (phase != Phase.MAIN) { reject("Cannot enter Battle Phase now"); return; }
-        phase = Phase.BATTLE;
-        message = "Battle Phase: choose a monster, then attack";
+    public boolean advanceToPhase(Phase next) {
+        if (phase == Phase.MAIN1) {
+            if (next != Phase.BATTLE && next != Phase.MAIN2 && next != Phase.END)
+                return reject("Choose Battle, Main Phase 2, or End Phase");
+        } else if (phase == Phase.BATTLE) {
+            if (next != Phase.MAIN2 && next != Phase.END)
+                return reject("Choose Main Phase 2 or End Phase");
+        } else if (phase == Phase.MAIN2) {
+            if (next != Phase.END) return reject("Choose End Phase");
+        } else {
+            return reject("Phase selection is not available now");
+        }
+        phase = next;
+        message = "Your " + phaseLabel(next);
+        if (next == Phase.BATTLE) message += ": choose a monster, then press 5";
+        if (next == Phase.END) message += ": press 5 to finish your turn";
+        return true;
+    }
+
+    private boolean isMainPhase() {
+        return phase == Phase.MAIN1 || phase == Phase.MAIN2;
+    }
+
+    public static String phaseLabel(Phase value) {
+        switch (value) {
+            case DRAW: return "Draw Phase";
+            case STANDBY: return "Standby Phase";
+            case MAIN1: return "Main Phase 1";
+            case BATTLE: return "Battle Phase";
+            case MAIN2: return "Main Phase 2";
+            case END: return "End Phase";
+            default: return "Duel Finished";
+        }
     }
 
     public boolean playerAttack(int attackerSlot, int defenderSlot) {
@@ -133,9 +162,8 @@ public final class DuelEngine {
 
     public void endPlayerTurn() {
         if (phase == Phase.FINISHED) return;
-        if (phase == Phase.MAIN) phase = Phase.END;
-        if (phase != Phase.BATTLE && phase != Phase.END) {
-            reject("Finish the current phase first");
+        if (phase != Phase.END) {
+            reject("Select End Phase first");
             return;
         }
         runCpuTurn();
@@ -144,8 +172,8 @@ public final class DuelEngine {
         playerNormalSummons = 0;
         clearAttacks(playerAttacked);
         draw(playerDeck, playerHand, 1);
-        phase = Phase.MAIN;
-        message = "Your turn " + turn + " - Main Phase";
+        phase = Phase.MAIN1;
+        message = "Your turn " + turn + " - Main Phase 1";
     }
 
     private void runCpuTurn() {
