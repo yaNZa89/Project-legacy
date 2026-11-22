@@ -15,7 +15,7 @@
 - [ ] Win/loss conditions and restart flow
 - [ ] Effect queue and chain resolution
 
-## Milestone 3 — Summon systems (in this order)
+## Milestone 3 — Summon systems (Link deferred)
 - [x] Preserve Monster Type and Attribute in card data
 - [x] Add Pendulum scale metadata and original Pendulum test cards
 - [ ] Complete Tribute Summon validation and selection
@@ -24,13 +24,20 @@
 - [ ] Synchro Summon
 - [ ] Xyz Summon
 - [ ] Pendulum Zones and Pendulum Summon rules
-- [ ] Link Summon deferred until the earlier systems are stable
+- [ ] Link Summon and Link-related card support — deferred until the other systems are stable
 
-## Milestone 4 — Content and device controls
-- [ ] Character profiles and distinct CPU strategies
-- [x] Expand original monster catalog with Type and Attribute
-- [ ] Add Spell and Trap cards with usable effects
+## Milestone 4 — Synergistic card content
+- [ ] Build coherent card packages/archetypes before maximizing raw card count
+- [ ] Prioritize cards that support one another: searchers, summon enablers, materials, extenders, protection, recovery, and payoff cards
+- [ ] Preserve and use Monster Type and Attribute as meaningful deck-building and effect dimensions (including Warrior, Dragon, DARK, LIGHT, and other categories)
+- [ ] Add matching Spell/Trap support and counterplay for each archetype
+- [ ] Add distinct CPU deck strategies that use the card synergies
+- [ ] Expand the catalog in tested stages; long-term scale target is 10,000+ cards, not a requirement for the first playable release
+- [ ] Keep card definitions/text separate from optional artwork and measure actual APK size against the 50 MB design ceiling
+
+## Milestone 5 — Device controls and polish
 - [ ] Configurable key map and actual device keycode test
 - [ ] Sound, animation, settings, save/load
+- [ ] Regression tests for rules, card effects, deck consistency, and API 19 compatibility
 
 All current card names and sample data are original placeholders. This project is an original prototype and does not include proprietary card artwork or card text.
