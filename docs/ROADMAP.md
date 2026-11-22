@@ -15,16 +15,22 @@
 - [ ] Win/loss conditions and restart flow
 - [ ] Effect queue and chain resolution
 
-## Milestone 3 — Summon systems
-- [ ] Tribute and Special Summon
-- [ ] Ritual and Fusion
-- [ ] Synchro and Xyz
-- [ ] Pendulum and Link
+## Milestone 3 — Summon systems (in this order)
+- [x] Preserve Monster Type and Attribute in card data
+- [x] Add Pendulum scale metadata and original Pendulum test cards
+- [ ] Complete Tribute Summon validation and selection
+- [ ] Ritual Summon
+- [ ] Fusion Summon
+- [ ] Synchro Summon
+- [ ] Xyz Summon
+- [ ] Pendulum Zones and Pendulum Summon rules
+- [ ] Link Summon deferred until the earlier systems are stable
 
 ## Milestone 4 — Content and device controls
 - [ ] Character profiles and distinct CPU strategies
-- [ ] Expand original card catalog
+- [x] Expand original monster catalog with Type and Attribute
+- [ ] Add Spell and Trap cards with usable effects
 - [ ] Configurable key map and actual device keycode test
 - [ ] Sound, animation, settings, save/load
 
-All card names and sample data in the prototype are original placeholders.
+All current card names and sample data are original placeholders. This project is an original prototype and does not include proprietary card artwork or card text.
