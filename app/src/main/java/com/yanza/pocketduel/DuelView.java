@@ -21,7 +21,7 @@ public class DuelView extends View {
     private boolean deckBrowser;
     private CardDefinition detailCard;
     private int detailScroll;
-    private String hint = "D-pad select | 7 inspect | 9 Battle Phase";
+    private String hint = "D-pad select | * deck/menu | # back";
 
     public DuelView(Context context) {
         super(context);
@@ -30,15 +30,13 @@ public class DuelView extends View {
 
     public boolean handleKey(int key) {
         if (detailCard != null) {
-            if (key == KeyEvent.KEYCODE_DPAD_UP || key == KeyEvent.KEYCODE_8) {
+            if (key == KeyEvent.KEYCODE_7 || key == KeyEvent.KEYCODE_DPAD_UP) {
                 detailScroll = Math.max(0, detailScroll - 1);
-            } else if (key == KeyEvent.KEYCODE_DPAD_DOWN || key == KeyEvent.KEYCODE_2) {
+            } else if (key == KeyEvent.KEYCODE_9 || key == KeyEvent.KEYCODE_DPAD_DOWN) {
                 detailScroll++;
-            } else if (key == KeyEvent.KEYCODE_BACK || key == KeyEvent.KEYCODE_DPAD_CENTER
+            } else if (key == KeyEvent.KEYCODE_POUND || key == KeyEvent.KEYCODE_BACK || key == KeyEvent.KEYCODE_DPAD_CENTER
                     || key == KeyEvent.KEYCODE_ENTER || key == KeyEvent.KEYCODE_5) {
                 detailCard = null;
-                detailScroll = 0;
-            } else if (key == KeyEvent.KEYCODE_7) {
                 detailScroll = 0;
             } else return false;
             invalidate();
@@ -51,10 +49,10 @@ public class DuelView extends View {
                 selectedDeck = Math.max(0, selectedDeck - 1);
             } else if (key == KeyEvent.KEYCODE_DPAD_DOWN || key == KeyEvent.KEYCODE_DPAD_RIGHT) {
                 selectedDeck = Math.min(Math.max(0, deck.size() - 1), selectedDeck + 1);
-            } else if (key == KeyEvent.KEYCODE_7 || key == KeyEvent.KEYCODE_DPAD_CENTER
+            } else if (key == KeyEvent.KEYCODE_DPAD_CENTER
                     || key == KeyEvent.KEYCODE_ENTER || key == KeyEvent.KEYCODE_5) {
                 if (!deck.isEmpty()) openDetails(deck.get(selectedDeck));
-            } else if (key == KeyEvent.KEYCODE_1 || key == KeyEvent.KEYCODE_BACK) {
+            } else if (key == KeyEvent.KEYCODE_POUND || key == KeyEvent.KEYCODE_BACK) {
                 deckBrowser = false;
             } else return false;
             invalidate();
@@ -90,13 +88,9 @@ public class DuelView extends View {
                 selectedMonster = clamp(selectedMonster
                         + (key == KeyEvent.KEYCODE_DPAD_UP ? -1 : 1), 0, 4);
             }
-        } else if (key == KeyEvent.KEYCODE_1) {
+        } else if (key == KeyEvent.KEYCODE_STAR) {
             deckBrowser = true;
             selectedDeck = 0;
-        } else if (key == KeyEvent.KEYCODE_7) {
-            CardDefinition selected = selectedCard();
-            if (selected != null) openDetails(selected);
-            else hint = "Select a card first";
         } else if (key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER
                 || key == KeyEvent.KEYCODE_5) {
             if (duel.getPhase() == DuelEngine.Phase.BATTLE) {
@@ -127,7 +121,7 @@ public class DuelView extends View {
             selectedHand = 0;
             selectedMonster = 0;
             choosingMonster = false;
-        } else if (key == KeyEvent.KEYCODE_BACK) {
+        } else if (key == KeyEvent.KEYCODE_POUND || key == KeyEvent.KEYCODE_BACK) {
             choosingMonster = false;
             selectedHand = 0;
         } else return false;
@@ -207,7 +201,7 @@ public class DuelView extends View {
         paint.setColor(0xfff3f5f7);
         paint.setTextSize(Math.max(10, w * 0.028f));
         canvas.drawText(hint, 14, h - 48, paint);
-        canvas.drawText("5 summon | 7 inspect | 8 tribute | 9 battle | 6 attack | 0 end", 14, h - 20, paint);
+        canvas.drawText("5 summon | * deck/menu | # back | 7/9 scroll | 8 tribute | 6 attack | 0 end", 14, h - 20, paint);
 
         if (deckBrowser) drawDeckBrowser(canvas, w, h);
         if (detailCard != null) drawCardDetails(canvas, w, h);
@@ -286,7 +280,7 @@ public class DuelView extends View {
             canvas.drawText((i + 1) + ". " + deck.get(i).name, 26, 120 + (i - first) * 22, paint);
         }
         paint.setColor(0xffd9eaf4);
-        canvas.drawText("Up/Down browse | 7 or OK details | 1/Back close", 25, h - 108, paint);
+        canvas.drawText("Up/Down browse | 5 details | # close", 25, h - 108, paint);
     }
 
     private void drawCardDetails(Canvas canvas, float w, float h) {
@@ -329,7 +323,7 @@ public class DuelView extends View {
         }
         paint.setColor(0xffb9cad5);
         paint.setTextSize(Math.max(10, w * 0.027f));
-        canvas.drawText("8/Up scroll up | 2/Down scroll down | OK/Back close",
+        canvas.drawText("7/Up scroll up | 9/Down scroll down | 5/# close",
                 24, h - 65, paint);
     }
 
