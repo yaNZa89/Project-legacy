@@ -194,12 +194,8 @@ public class DuelView extends View {
         canvas.drawText("CPU  LP: " + duel.getCpuLP(), 14, 58, paint);
         canvas.drawText("TURN " + duel.getTurn(), w - 105, 58, paint);
 
-        drawField(canvas, duel.getCpuField(), h * 0.13f, w, false);
-        paint.setColor(0xffc6d5df);
-        paint.setTextSize(Math.max(12, w * 0.034f));
-        canvas.drawText("OPPONENT FIELD", 14, h * 0.265f, paint);
-        canvas.drawText("YOUR FIELD", 14, h * 0.485f, paint);
-        drawField(canvas, duel.getPlayerField(), h * 0.51f, w, true);
+        drawField(canvas, duel.getCpuField(), h * 0.115f, w, false);
+        drawField(canvas, duel.getPlayerField(), h * 0.385f, w, true);
 
         paint.setColor(0xfff0f5f8);
         paint.setTextSize(Math.max(14, w * 0.039f));
@@ -320,31 +316,68 @@ public class DuelView extends View {
     private void drawField(Canvas canvas, CardDefinition[] field, float y, float w,
                            boolean playerSide) {
         float gap = 3;
-        float sideW = w * 0.105f;
-        float monsterStart = 7 + sideW + gap;
-        float monsterW = (w - 14 - sideW * 2 - gap * 6) / 5f;
-        float ch = getHeight() * 0.105f;
+        float sideW = w * 0.085f;
+        float start = 7 + sideW + gap;
+        float zoneW = (w - 14 - sideW * 2 - gap * 6) / 5f;
+        float zoneH = getHeight() * 0.075f;
+        float rowGap = getHeight() * 0.010f;
+        float spellY = y + zoneH + rowGap;
 
-        drawPendulumZone(canvas, 7, y, sideW, ch, "P-L");
-        drawPendulumZone(canvas, w - 7 - sideW, y, sideW, ch, "P-R");
+        drawPendulumZone(canvas, 7, y, sideW, zoneH * 2 + rowGap, "P-L");
+        drawPendulumZone(canvas, w - 7 - sideW, y, sideW, zoneH * 2 + rowGap, "P-R");
 
-        for (int i = 0; i < field.length; i++) {
-            float x = monsterStart + i * (monsterW + gap);
-            RectF rect = new RectF(x, y, x + monsterW, y + ch);
-            boolean selected = playerSide && selectedMonster == i
+        drawZoneRow(canvas, field, start, y, zoneW, zoneH, gap, true, playerSide);
+        drawZoneRow(canvas, null, start, spellY, zoneW, zoneH, gap, false, false);
+
+        if (playerSide) {
+            float pileY = spellY + zoneH + getHeight() * 0.012f;
+            drawPileStrip(canvas, pileY, w);
+        }
+    }
+
+    private void drawZoneRow(Canvas canvas, CardDefinition[] monsters, float start,
+                             float y, float zoneW, float zoneH, float gap,
+                             boolean monsterRow, boolean playerSide) {
+        for (int i = 0; i < 5; i++) {
+            float x = start + i * (zoneW + gap);
+            RectF rect = new RectF(x, y, x + zoneW, y + zoneH);
+            CardDefinition card = monsterRow && monsters != null ? monsters[i] : null;
+            boolean selected = monsterRow && playerSide && selectedMonster == i
                     && (choosingMonster || duel.getPhase() == DuelEngine.Phase.BATTLE);
             paint.setColor(selected ? 0xffffc857
-                    : field[i] == null ? 0xff31495b : 0xffbd9653);
-            canvas.drawRoundRect(rect, 5, 5, paint);
-            paint.setColor(field[i] == null ? 0xff9aabba : 0xff101b2b);
-            paint.setTextSize(Math.max(7, w * 0.020f));
-            if (field[i] != null) {
-                canvas.drawText(shortName(field[i].name, 8), x + 2, y + 14, paint);
-                canvas.drawText("A" + field[i].attack, x + 2, y + 29, paint);
-                canvas.drawText("D" + field[i].defense, x + 2, y + 43, paint);
-            } else {
-                canvas.drawText("M" + (i + 1), x + 3, y + ch * 0.58f, paint);
+                    : card == null ? (monsterRow ? 0xff31495b : 0xff29465a)
+                    : 0xffbd9653);
+            canvas.drawRoundRect(rect, 4, 4, paint);
+            paint.setColor(card == null ? 0xffc6d5df : 0xff101b2b);
+            paint.setTextSize(Math.max(7, getWidth() * 0.019f));
+            String label = monsterRow ? (card == null ? "M" + (i + 1)
+                    : shortName(card.name, 7)) : "S/T " + (i + 1);
+            canvas.drawText(label, x + 2, y + zoneH * 0.43f, paint);
+            if (card != null) {
+                paint.setTextSize(Math.max(7, getWidth() * 0.018f));
+                canvas.drawText("A" + card.attack + " D" + card.defense,
+                        x + 2, y + zoneH * 0.78f, paint);
             }
+        }
+    }
+
+    private void drawPileStrip(Canvas canvas, float y, float w) {
+        String[] labels = {"DECK", "EXTRA", "GRAVE", "REMOVED", "FIELD"};
+        int[] counts = {duel.getPlayerDeck().size(), duel.getPlayerExtraDeck().size(),
+                duel.getPlayerGraveyard().size(), duel.getPlayerBanished().size(), 0};
+        float gap = 4;
+        float pileW = (w - 14 - gap * 4) / 5f;
+        float pileH = getHeight() * 0.045f;
+        for (int i = 0; i < labels.length; i++) {
+            float x = 7 + i * (pileW + gap);
+            paint.setColor(i == 4 ? 0xff294f68 : 0xff263d50);
+            canvas.drawRoundRect(new RectF(x, y, x + pileW, y + pileH), 4, 4, paint);
+            paint.setColor(0xffd9eaf4);
+            paint.setTextSize(Math.max(7, Math.min(10, w * 0.025f)));
+            canvas.drawText(labels[i], x + 3, y + pileH * 0.42f, paint);
+            paint.setTextSize(Math.max(7, w * 0.020f));
+            canvas.drawText(i == 4 ? "ZONE" : String.valueOf(counts[i]),
+                    x + 3, y + pileH * 0.82f, paint);
         }
     }
 
