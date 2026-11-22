@@ -401,7 +401,9 @@ public class DuelView extends View {
             RectF rect = new RectF(x, y, x + zoneW, y + zoneH);
             CardDefinition card = monsterRow && monsters != null ? monsters[i] : null;
             boolean selected = monsterRow && playerSide && navRow == 0 && navColumn == i + 1;
-            paint.setColor(selected ? 0xffffc857
+            boolean rowSelected = playerSide && navRow == (monsterRow ? 0 : 1)
+                    && navColumn == i + 1;
+            paint.setColor(rowSelected ? 0xffffc857
                     : card == null ? (monsterRow ? 0xff31495b : 0xff29465a)
                     : 0xffbd9653);
             canvas.drawRoundRect(rect, 4, 4, paint);
@@ -467,12 +469,12 @@ public class DuelView extends View {
     }
 
     private void drawDeckBrowser(Canvas canvas, float w, float h) {
-        List<CardDefinition> deck = duel.getPlayerDeck();
+        List<CardDefinition> deck = getBrowseCards();
         paint.setColor(0xee101820);
         canvas.drawRoundRect(new RectF(12, 65, w - 12, h - 90), 12, 12, paint);
         paint.setColor(0xffffd477);
         paint.setTextSize(17);
-        canvas.drawText("DECK VIEW  (" + deck.size() + " cards)", 25, 92, paint);
+        canvas.drawText(browseTitle() + "  (" + deck.size() + " cards)", 25, 92, paint);
         paint.setTextSize(13);
         int first = Math.max(0, selectedDeck - 7);
         int last = Math.min(deck.size(), first + 15);
