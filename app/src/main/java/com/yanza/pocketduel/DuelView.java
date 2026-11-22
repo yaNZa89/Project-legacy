@@ -18,7 +18,7 @@ public class DuelView extends View {
     private int selectedMonster;
     private int selectedDeck;
     private boolean choosingMonster;
-    private boolean phaseRibbonFocused;
+    private boolean phaseMenu;
     private int selectedPhaseIndex;
     private boolean deckBrowser;
     private CardDefinition detailCard;
@@ -63,6 +63,22 @@ public class DuelView extends View {
             return true;
         }
 
+        if (phaseMenu) {
+            if (key == KeyEvent.KEYCODE_4 || key == KeyEvent.KEYCODE_DPAD_LEFT) {
+                selectedPhaseIndex = clamp(selectedPhaseIndex - 1, 0, 5);
+            } else if (key == KeyEvent.KEYCODE_6 || key == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                selectedPhaseIndex = clamp(selectedPhaseIndex + 1, 0, 5);
+            } else if (key == KeyEvent.KEYCODE_5 || key == KeyEvent.KEYCODE_DPAD_CENTER
+                    || key == KeyEvent.KEYCODE_ENTER) {
+                activateSelectedPhase();
+            } else if (key == KeyEvent.KEYCODE_POUND || key == KeyEvent.KEYCODE_BACK
+                    || key == KeyEvent.KEYCODE_STAR) {
+                phaseMenu = false;
+            } else return false;
+            invalidate();
+            return true;
+        }
+
         if (duel.getPhase() == DuelEngine.Phase.FINISHED) {
             if (key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER
                     || key == KeyEvent.KEYCODE_5) {
@@ -76,9 +92,7 @@ public class DuelView extends View {
         if (key == KeyEvent.KEYCODE_DPAD_LEFT || key == KeyEvent.KEYCODE_DPAD_RIGHT
                 || key == KeyEvent.KEYCODE_4 || key == KeyEvent.KEYCODE_6) {
             int direction = (key == KeyEvent.KEYCODE_DPAD_LEFT || key == KeyEvent.KEYCODE_4) ? -1 : 1;
-            if (phaseRibbonFocused) {
-                selectedPhaseIndex = clamp(selectedPhaseIndex + direction, 0, 5);
-            } else if (duel.getPhase() == DuelEngine.Phase.BATTLE || choosingMonster) {
+            if (duel.getPhase() == DuelEngine.Phase.BATTLE || choosingMonster) {
                 selectedMonster = clamp(selectedMonster + direction, 0, 4);
                 choosingMonster = true;
             } else {
@@ -89,9 +103,7 @@ public class DuelView extends View {
         } else if (key == KeyEvent.KEYCODE_DPAD_UP || key == KeyEvent.KEYCODE_DPAD_DOWN
                 || key == KeyEvent.KEYCODE_2 || key == KeyEvent.KEYCODE_8) {
             boolean moveUp = key == KeyEvent.KEYCODE_DPAD_UP || key == KeyEvent.KEYCODE_2;
-            phaseRibbonFocused = !moveUp;
-            if (phaseRibbonFocused) selectedPhaseIndex = phaseIndex(duel.getPhase());
-            if (!phaseRibbonFocused && duel.getPhase() != DuelEngine.Phase.BATTLE) {
+            if (duel.getPhase() != DuelEngine.Phase.BATTLE) {
                 choosingMonster = !choosingMonster;
                 hint = choosingMonster ? "Monster Zone selected - press 5 to inspect"
                         : "Hand selected - press 5 to inspect";
@@ -100,9 +112,7 @@ public class DuelView extends View {
             }
         } else if (key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER
                 || key == KeyEvent.KEYCODE_5) {
-            if (phaseRibbonFocused) {
-                activateSelectedPhase();
-            } else if (duel.getPhase() == DuelEngine.Phase.END) {
+            if (duel.getPhase() == DuelEngine.Phase.END) {
                 duel.endPlayerTurn();
                 selectedHand = 0;
                 selectedMonster = 0;
@@ -120,12 +130,15 @@ public class DuelView extends View {
                         Math.max(0, duel.getPlayerHand().size() - 1));
             }
         } else if (key == KeyEvent.KEYCODE_POUND || key == KeyEvent.KEYCODE_BACK) {
-            phaseRibbonFocused = false;
+            phaseMenu = false;
             choosingMonster = false;
             selectedHand = 0;
+        } else if (key == KeyEvent.KEYCODE_STAR) {
+            phaseMenu = true;
+            selectedPhaseIndex = phaseIndex(duel.getPhase());
         } else return false;
 
-        if (detailCard == null && !deckBrowser) hint = duel.getMessage();
+        if (detailCard == null && !deckBrowser && !phaseMenu) hint = duel.getMessage();
         invalidate();
         return true;
     }
@@ -198,9 +211,10 @@ public class DuelView extends View {
         paint.setColor(0xfff3f5f7);
         paint.setTextSize(Math.max(10, w * 0.028f));
         canvas.drawText(hint, 14, h - 48, paint);
-        canvas.drawText("8 phase bar | 4/6 move | 5 select | 2 return", 14, h - 20, paint);
+        canvas.drawText("* phase | 4/6 cursor | 5 select | # close", 14, h - 20, paint);
 
         if (deckBrowser) drawDeckBrowser(canvas, w, h);
+        if (phaseMenu) drawPhaseMenu(canvas, w, h);
         if (detailCard != null) drawCardDetails(canvas, w, h);
     }
 
@@ -234,7 +248,6 @@ public class DuelView extends View {
             selectedHand = 0;
             selectedMonster = 0;
             choosingMonster = false;
-            phaseRibbonFocused = false;
         } else {
             duel.advanceToPhase(next);
             if (duel.getPhase() == next) {
@@ -243,6 +256,34 @@ public class DuelView extends View {
             }
         }
         hint = duel.getMessage();
+        phaseMenu = false;
+    }
+
+    private void drawPhaseMenu(Canvas canvas, float w, float h) {
+        String[] labels = {"DRAW", "STBY", "MAIN 1", "BATTLE", "MAIN 2", "END"};
+        float panelW = w * 0.94f;
+        float left = (w - panelW) / 2f;
+        float top = h * 0.39f;
+        float cellW = (panelW - 16 - 5 * 3) / 6f;
+        float cellH = 42;
+        paint.setColor(0xee14283a);
+        canvas.drawRoundRect(new RectF(left, top - 34, left + panelW, top + cellH + 28), 12, 12, paint);
+        paint.setColor(0xffffd477);
+        paint.setTextSize(Math.max(13, w * 0.038f));
+        canvas.drawText("SELECT PHASE", left + 12, top - 12, paint);
+        for (int i = 0; i < labels.length; i++) {
+            float x = left + 8 + i * (cellW + 3);
+            paint.setColor(i == selectedPhaseIndex ? 0xffffc857 : 0xff29465a);
+            canvas.drawRoundRect(new RectF(x, top, x + cellW, top + cellH), 6, 6, paint);
+            paint.setColor(i == selectedPhaseIndex ? 0xff172536 : 0xffd8e3eb);
+            paint.setTextAlign(Paint.Align.CENTER);
+            paint.setTextSize(Math.max(8, Math.min(11, w * 0.027f)));
+            canvas.drawText(labels[i], x + cellW / 2f, top + 25, paint);
+        }
+        paint.setTextAlign(Paint.Align.LEFT);
+        paint.setColor(0xffd9eaf4);
+        paint.setTextSize(Math.max(10, w * 0.028f));
+        canvas.drawText("4/6 move | 5 select | # close", left + 12, top + cellH + 48, paint);
     }
 
     private void drawPhaseRibbon(Canvas canvas, float w, float h) {
@@ -258,7 +299,7 @@ public class DuelView extends View {
         for (int i = 0; i < labels.length; i++) {
             float x = 7 + i * (cellW + gap);
             boolean active = duel.getPhase() == phases[i];
-            boolean cursor = phaseRibbonFocused && selectedPhaseIndex == i;
+            boolean cursor = false;
             paint.setColor(active ? 0xffffc857 : 0xff29465a);
             canvas.drawRoundRect(new RectF(x, top, x + cellW, bottom), 5, 5, paint);
             paint.setColor(active ? 0xff172536 : 0xffd8e3eb);
