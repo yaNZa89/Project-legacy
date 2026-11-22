@@ -94,7 +94,12 @@ public final class DuelEngine {
     }
 
     public boolean advanceToPhase(Phase next) {
-        if (phase == Phase.MAIN1) {
+        if (phase == Phase.DRAW) {
+            if (next != Phase.STANDBY && next != Phase.MAIN1)
+                return reject("Choose Standby Phase or Main Phase 1");
+        } else if (phase == Phase.STANDBY) {
+            if (next != Phase.MAIN1) return reject("Choose Main Phase 1");
+        } else if (phase == Phase.MAIN1) {
             if (next != Phase.BATTLE && next != Phase.MAIN2 && next != Phase.END)
                 return reject("Choose Battle, Main Phase 2, or End Phase");
         } else if (phase == Phase.BATTLE) {
@@ -172,8 +177,8 @@ public final class DuelEngine {
         playerNormalSummons = 0;
         clearAttacks(playerAttacked);
         draw(playerDeck, playerHand, 1);
-        phase = Phase.MAIN1;
-        message = "Your turn " + turn + " - Main Phase 1";
+        phase = Phase.DRAW;
+        message = "Your turn " + turn + " - Draw Phase";
     }
 
     private void runCpuTurn() {
