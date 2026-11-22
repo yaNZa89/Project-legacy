@@ -44,7 +44,7 @@ public class DuelView extends View {
         } else if (key == KeyEvent.KEYCODE_DPAD_RIGHT || key == KeyEvent.KEYCODE_DPAD_DOWN) {
             if (duel.getPhase() == DuelEngine.Phase.BATTLE) {
                 choosingMonster = true;
-                selectedMonster = Math.min(2, selectedMonster + 1);
+                selectedMonster = Math.min(duel.getPlayerField().length - 1, selectedMonster + 1);
             } else {
                 choosingMonster = false;
                 selectedHand = Math.min(Math.max(0, duel.getPlayerHand().size() - 1), selectedHand + 1);
