@@ -218,6 +218,7 @@ public final class DuelEngine {
         if (phase != Phase.BATTLE) return reject("Enter Battle Phase first");
         if (!validSlot(attackerSlot) || playerField[attackerSlot] == null)
             return reject("Choose your monster first");
+        if (playerMonsterFaceDown[attackerSlot]) return reject("A face-down monster cannot attack");
         if (playerAttacked[attackerSlot]) return reject("That monster already attacked");
         if (hasMonsters(cpuField)) {
             if (!validSlot(defenderSlot) || cpuField[defenderSlot] == null)
@@ -309,6 +310,15 @@ public final class DuelEngine {
             int target = weakestMonster(playerField);
             if (target < 0) {
                 playerLP = Math.max(0, playerLP - attacker.attack);
+            } else if (playerMonsterFaceDown[target]) {
+                int defense = playerField[target].defense;
+                playerMonsterFaceDown[target] = false;
+                if (attacker.attack > defense) {
+                    playerField[target] = null;
+                    message = "Your face-down monster was revealed and destroyed";
+                } else {
+                    message = "Your face-down monster was revealed and survives";
+                }
             } else if (attacker.attack > playerField[target].attack) {
                 playerLP = Math.max(0, playerLP - (attacker.attack - playerField[target].attack));
                 playerField[target] = null;
