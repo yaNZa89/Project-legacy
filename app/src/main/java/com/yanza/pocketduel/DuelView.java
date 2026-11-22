@@ -19,6 +19,10 @@ public class DuelView extends View {
     private int selectedDeck;
     private boolean choosingMonster;
     private boolean deckBrowser;
+    private boolean mainMenu;
+    private boolean phaseMenu;
+    private int mainMenuIndex;
+    private int selectedPhase;
     private CardDefinition detailCard;
     private int detailScroll;
     private String hint = "D-pad select | * deck/menu | # back";
@@ -38,6 +42,56 @@ public class DuelView extends View {
                     || key == KeyEvent.KEYCODE_ENTER || key == KeyEvent.KEYCODE_5) {
                 detailCard = null;
                 detailScroll = 0;
+            } else return false;
+            invalidate();
+            return true;
+        }
+
+        if (phaseMenu) {
+            List<DuelEngine.Phase> options = getPhaseOptions();
+            if (key == KeyEvent.KEYCODE_2 || key == KeyEvent.KEYCODE_DPAD_UP) {
+                selectedPhase = Math.max(0, selectedPhase - 1);
+            } else if (key == KeyEvent.KEYCODE_8 || key == KeyEvent.KEYCODE_DPAD_DOWN) {
+                selectedPhase = Math.min(Math.max(0, options.size() - 1), selectedPhase + 1);
+            } else if (key == KeyEvent.KEYCODE_5 || key == KeyEvent.KEYCODE_DPAD_CENTER
+                    || key == KeyEvent.KEYCODE_ENTER) {
+                if (!options.isEmpty()) {
+                    duel.advanceToPhase(options.get(selectedPhase));
+                    phaseMenu = false;
+                    mainMenu = false;
+                    choosingMonster = duel.getPhase() == DuelEngine.Phase.BATTLE;
+                    hint = duel.getMessage();
+                }
+            } else if (key == KeyEvent.KEYCODE_POUND || key == KeyEvent.KEYCODE_BACK) {
+                phaseMenu = false;
+                mainMenu = true;
+            } else return false;
+            invalidate();
+            return true;
+        }
+
+        if (mainMenu) {
+            if (key == KeyEvent.KEYCODE_2 || key == KeyEvent.KEYCODE_DPAD_UP) {
+                mainMenuIndex = Math.max(0, mainMenuIndex - 1);
+            } else if (key == KeyEvent.KEYCODE_8 || key == KeyEvent.KEYCODE_DPAD_DOWN) {
+                mainMenuIndex = Math.min(1, mainMenuIndex + 1);
+            } else if (key == KeyEvent.KEYCODE_5 || key == KeyEvent.KEYCODE_DPAD_CENTER
+                    || key == KeyEvent.KEYCODE_ENTER) {
+                if (mainMenuIndex == 0) {
+                    if (getPhaseOptions().isEmpty()) {
+                        hint = "No further phase choices";
+                    } else {
+                        phaseMenu = true;
+                        selectedPhase = 0;
+                    }
+                } else {
+                    mainMenu = false;
+                    deckBrowser = true;
+                    selectedDeck = 0;
+                }
+            } else if (key == KeyEvent.KEYCODE_POUND || key == KeyEvent.KEYCODE_BACK
+                    || key == KeyEvent.KEYCODE_STAR) {
+                mainMenu = false;
             } else return false;
             invalidate();
             return true;
@@ -93,11 +147,16 @@ public class DuelView extends View {
                 selectedMonster = clamp(selectedMonster + (moveUp ? -1 : 1), 0, 4);
             }
         } else if (key == KeyEvent.KEYCODE_STAR) {
-            deckBrowser = true;
-            selectedDeck = 0;
+            mainMenu = true;
+            mainMenuIndex = 0;
         } else if (key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER
                 || key == KeyEvent.KEYCODE_5) {
-            if (duel.getPhase() == DuelEngine.Phase.BATTLE) {
+            if (duel.getPhase() == DuelEngine.Phase.END) {
+                duel.endPlayerTurn();
+                selectedHand = 0;
+                selectedMonster = 0;
+                choosingMonster = false;
+            } else if (duel.getPhase() == DuelEngine.Phase.BATTLE) {
                 attackSelected();
             } else if (choosingMonster) {
                 CardDefinition[] field = duel.getPlayerField();
@@ -109,21 +168,12 @@ public class DuelView extends View {
                 selectedHand = Math.min(selectedHand,
                         Math.max(0, duel.getPlayerHand().size() - 1));
             }
-        } else if (key == KeyEvent.KEYCODE_9) {
-            duel.enterBattlePhase();
-            choosingMonster = true;
-            hint = "Battle Phase: 2/8 choose lane, 4/6 choose monster, 5 confirm";
-        } else if (key == KeyEvent.KEYCODE_0) {
-            duel.endPlayerTurn();
-            selectedHand = 0;
-            selectedMonster = 0;
-            choosingMonster = false;
         } else if (key == KeyEvent.KEYCODE_POUND || key == KeyEvent.KEYCODE_BACK) {
             choosingMonster = false;
             selectedHand = 0;
         } else return false;
 
-        if (detailCard == null && !deckBrowser) hint = duel.getMessage();
+        if (detailCard == null && !deckBrowser && !mainMenu && !phaseMenu) hint = duel.getMessage();
         invalidate();
         return true;
     }
@@ -198,9 +248,11 @@ public class DuelView extends View {
         paint.setColor(0xfff3f5f7);
         paint.setTextSize(Math.max(10, w * 0.028f));
         canvas.drawText(hint, 14, h - 48, paint);
-        canvas.drawText("2/4/6/8 move | 5 action | 7/9 card scroll | * deck | # back | 0 end", 14, h - 20, paint);
+        canvas.drawText("2/4/6/8 move | 5 action | 7/9 scroll | * menu | # back", 14, h - 20, paint);
 
         if (deckBrowser) drawDeckBrowser(canvas, w, h);
+        if (mainMenu) drawMainMenu(canvas, w, h);
+        if (phaseMenu) drawPhaseMenu(canvas, w, h);
         if (detailCard != null) drawCardDetails(canvas, w, h);
     }
 
@@ -260,6 +312,55 @@ public class DuelView extends View {
             canvas.drawText(shortName(hand.get(i).name, 13), x + 4, rect.top + 18, paint);
             canvas.drawText("ATK " + hand.get(i).attack, x + 4, rect.top + 35, paint);
         }
+    }
+
+    private List<DuelEngine.Phase> getPhaseOptions() {
+        List<DuelEngine.Phase> options = new ArrayList<DuelEngine.Phase>();
+        if (duel.getPhase() == DuelEngine.Phase.MAIN1) {
+            options.add(DuelEngine.Phase.BATTLE);
+            options.add(DuelEngine.Phase.MAIN2);
+            options.add(DuelEngine.Phase.END);
+        } else if (duel.getPhase() == DuelEngine.Phase.BATTLE) {
+            options.add(DuelEngine.Phase.MAIN2);
+            options.add(DuelEngine.Phase.END);
+        } else if (duel.getPhase() == DuelEngine.Phase.MAIN2) {
+            options.add(DuelEngine.Phase.END);
+        }
+        return options;
+    }
+
+    private void drawMainMenu(Canvas canvas, float w, float h) {
+        paint.setColor(0xee101820);
+        canvas.drawRoundRect(new RectF(18, h * 0.28f, w - 18, h * 0.70f), 12, 12, paint);
+        paint.setTextSize(Math.max(18, w * 0.05f));
+        paint.setColor(0xffffd477);
+        canvas.drawText("DUEL MENU", 32, h * 0.34f, paint);
+        paint.setTextSize(Math.max(14, w * 0.038f));
+        paint.setColor(mainMenuIndex == 0 ? 0xffffd477 : 0xfff0f5f8);
+        canvas.drawText((mainMenuIndex == 0 ? "> " : "  ") + "Select Phase", 36, h * 0.44f, paint);
+        paint.setColor(mainMenuIndex == 1 ? 0xffffd477 : 0xfff0f5f8);
+        canvas.drawText((mainMenuIndex == 1 ? "> " : "  ") + "View Deck", 36, h * 0.52f, paint);
+        paint.setColor(0xffb9cad5);
+        paint.setTextSize(Math.max(11, w * 0.03f));
+        canvas.drawText("2/8 select | 5 confirm | # close", 32, h * 0.64f, paint);
+    }
+
+    private void drawPhaseMenu(Canvas canvas, float w, float h) {
+        List<DuelEngine.Phase> options = getPhaseOptions();
+        paint.setColor(0xee101820);
+        canvas.drawRoundRect(new RectF(18, h * 0.22f, w - 18, h * 0.76f), 12, 12, paint);
+        paint.setTextSize(Math.max(18, w * 0.05f));
+        paint.setColor(0xffffd477);
+        canvas.drawText("SELECT PHASE", 32, h * 0.29f, paint);
+        paint.setTextSize(Math.max(13, w * 0.036f));
+        for (int i = 0; i < options.size(); i++) {
+            paint.setColor(i == selectedPhase ? 0xffffd477 : 0xfff0f5f8);
+            canvas.drawText((i == selectedPhase ? "> " : "  ")
+                    + DuelEngine.phaseLabel(options.get(i)), 36, h * (0.39f + i * 0.075f), paint);
+        }
+        paint.setColor(0xffb9cad5);
+        paint.setTextSize(Math.max(11, w * 0.03f));
+        canvas.drawText("2/8 select | 5 confirm | # back", 32, h * 0.70f, paint);
     }
 
     private void drawDeckBrowser(Canvas canvas, float w, float h) {
