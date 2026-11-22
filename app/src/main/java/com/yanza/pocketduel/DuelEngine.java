@@ -36,7 +36,6 @@ public final class DuelEngine {
                 }
             }
         }
-        // Fixed order makes the first prototype reproducible while rules are tested.
         Collections.reverse(cpuDeck);
         draw(playerDeck, playerHand, 5);
         draw(cpuDeck, cpuHand, 5);
@@ -44,9 +43,7 @@ public final class DuelEngine {
         message = "Your Main Phase";
     }
 
-    public List<CardDefinition> getPlayerHand() {
-        return Collections.unmodifiableList(playerHand);
-    }
+    public List<CardDefinition> getPlayerHand() { return Collections.unmodifiableList(playerHand); }
     public CardDefinition[] getPlayerField() { return playerField.clone(); }
     public CardDefinition[] getCpuField() { return cpuField.clone(); }
     public int getPlayerLP() { return playerLP; }
@@ -56,12 +53,49 @@ public final class DuelEngine {
     public String getMessage() { return message; }
 
     public boolean summonFromHand(int handIndex) {
+        return summonFromHand(handIndex, false);
+    }
+
+    /** Tribute Summon: Level 5-6 needs one tribute; Level 7+ needs two. */
+    public boolean tributeSummonFromHand(int handIndex) {
+        if (phase != Phase.MAIN) return reject("Tribute Summon requires Main Phase");
+        if (playerNormalSummons >= 1) return reject("Normal Summon already used this turn");
+        if (handIndex < 0 || handIndex >= playerHand.size()) return reject("Select a card in your hand");
+        CardDefinition card = playerHand.get(handIndex);
+        if (card.kind != CardDefinition.Kind.MONSTER) return reject("Only monsters can be Tribute Summoned");
+        int required = card.level >= 7 ? 2 : card.level >= 5 ? 1 : 0;
+        if (required == 0) return reject("This monster does not need a Tribute");
+        if (countMonsters(playerField) < required) {
+            return reject("Need " + required + " monster tribute(s)");
+        }
+        int slot = firstEmpty(playerField);
+        if (slot < 0) slot = weakestMonster(playerField);
+        if (slot < 0) return reject("No monster area available");
+        // Select the lowest-ATK monsters as automatic tributes for keypad simplicity.
+        for (int n = 0; n < required; n++) {
+            int tributeSlot = weakestMonster(playerField);
+            if (tributeSlot >= 0) playerField[tributeSlot] = null;
+        }
+        slot = firstEmpty(playerField);
+        if (slot < 0) return reject("No monster area available after Tribute");
+        playerHand.remove(handIndex);
+        playerField[slot] = card;
+        playerNormalSummons++;
+        message = card.name + " Tribute Summoned (" + required + " tribute)";
+        String effectMessage = CardEffectResolver.resolveOnSummon(this, card);
+        if (effectMessage.length() > 0) message += " - " + effectMessage;
+        return true;
+    }
+
+    private boolean summonFromHand(int handIndex, boolean ignored) {
         if (phase != Phase.MAIN) return reject("Summoning is only allowed in Main Phase");
         if (playerNormalSummons >= 1) return reject("Normal Summon already used this turn");
         if (handIndex < 0 || handIndex >= playerHand.size()) return reject("Select a card in your hand");
+        CardDefinition card = playerHand.get(handIndex);
+        if (card.level >= 5) return reject("Level 5+ monsters require Tribute Summon");
         int slot = firstEmpty(playerField);
         if (slot < 0) return reject("Your monster area is full");
-        CardDefinition card = playerHand.remove(handIndex);
+        playerHand.remove(handIndex);
         playerField[slot] = card;
         playerNormalSummons++;
         message = card.name + " summoned to slot " + (slot + 1);
@@ -128,15 +162,16 @@ public final class DuelEngine {
     private void runCpuTurn() {
         draw(cpuDeck, cpuHand, 1);
         if (firstEmpty(cpuField) >= 0 && !cpuHand.isEmpty()) {
-            CardDefinition strongest = cpuHand.get(0);
-            int strongestIndex = 0;
-            for (int i = 1; i < cpuHand.size(); i++) {
-                if (cpuHand.get(i).attack > strongest.attack) {
-                    strongest = cpuHand.get(i);
+            int strongestIndex = -1;
+            int strongestAtk = -1;
+            for (int i = 0; i < cpuHand.size(); i++) {
+                CardDefinition c = cpuHand.get(i);
+                if (c.level < 5 && c.attack > strongestAtk) {
+                    strongestAtk = c.attack;
                     strongestIndex = i;
                 }
             }
-            cpuField[firstEmpty(cpuField)] = cpuHand.remove(strongestIndex);
+            if (strongestIndex >= 0) cpuField[firstEmpty(cpuField)] = cpuHand.remove(strongestIndex);
         }
         for (int i = 0; i < cpuField.length; i++) {
             CardDefinition attacker = cpuField[i];
@@ -151,7 +186,6 @@ public final class DuelEngine {
                 playerField[target] = null;
                 cpuField[i] = null;
             } else {
-                // A weaker attacking monster is destroyed by the stronger defender.
                 cpuField[i] = null;
             }
             cpuAttacked[i] = true;
@@ -168,21 +202,22 @@ public final class DuelEngine {
     }
 
     private void draw(List<CardDefinition> deck, List<CardDefinition> hand, int count) {
-        for (int i = 0; i < count && !deck.isEmpty() && hand.size() < 7; i++) {
-            hand.add(deck.remove(0));
-        }
+        for (int i = 0; i < count && !deck.isEmpty() && hand.size() < 7; i++) hand.add(deck.remove(0));
     }
-
     private int firstEmpty(CardDefinition[] field) {
         for (int i = 0; i < field.length; i++) if (field[i] == null) return i;
         return -1;
     }
     private int weakestMonster(CardDefinition[] field) {
         int slot = -1;
-        for (int i = 0; i < field.length; i++) {
+        for (int i = 0; i < field.length; i++)
             if (field[i] != null && (slot < 0 || field[i].attack < field[slot].attack)) slot = i;
-        }
         return slot;
+    }
+    private int countMonsters(CardDefinition[] field) {
+        int count = 0;
+        for (CardDefinition c : field) if (c != null) count++;
+        return count;
     }
     private boolean hasMonsters(CardDefinition[] field) {
         for (CardDefinition card : field) if (card != null) return true;
@@ -193,7 +228,6 @@ public final class DuelEngine {
         for (int i = 0; i < values.length; i++) values[i] = false;
     }
     private boolean reject(String reason) { message = reason; return false; }
-
     private void checkWinner() {
         if (playerLP <= 0 || cpuLP <= 0) {
             phase = Phase.FINISHED;
