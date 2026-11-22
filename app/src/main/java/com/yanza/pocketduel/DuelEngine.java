@@ -12,6 +12,8 @@ public final class DuelEngine {
     private final List<CardDefinition> cpuDeck = new ArrayList<CardDefinition>();
     private final List<CardDefinition> playerHand = new ArrayList<CardDefinition>();
     private final List<CardDefinition> cpuHand = new ArrayList<CardDefinition>();
+    private final List<CardDefinition> playerGraveyard = new ArrayList<CardDefinition>();
+    private final List<CardDefinition> playerBanished = new ArrayList<CardDefinition>();
     private final CardDefinition[] playerField = new CardDefinition[5];
     private final CardDefinition[] cpuField = new CardDefinition[5];
     private final boolean[] playerAttacked = new boolean[5];
@@ -42,6 +44,14 @@ public final class DuelEngine {
 
     public List<CardDefinition> getPlayerHand() { return Collections.unmodifiableList(playerHand); }
     public List<CardDefinition> getPlayerDeck() { return Collections.unmodifiableList(playerDeck); }
+    public List<CardDefinition> getPlayerGraveyard() { return Collections.unmodifiableList(playerGraveyard); }
+    public List<CardDefinition> getPlayerBanished() { return Collections.unmodifiableList(playerBanished); }
+    public boolean banishFromGraveyard(int index) {
+        if (index < 0 || index >= playerGraveyard.size()) return reject("Select a card in the Graveyard");
+        playerBanished.add(playerGraveyard.remove(index));
+        message = "Card moved to Banished Zone";
+        return true;
+    }
     public CardDefinition[] getPlayerField() { return playerField.clone(); }
     public CardDefinition[] getCpuField() { return cpuField.clone(); }
     public int getPlayerLP() { return playerLP; }
@@ -80,6 +90,7 @@ public final class DuelEngine {
         if (countMonsters(playerField) < required) return reject("Need " + required + " monster tribute(s)");
         for (int n = 0; n < required; n++) {
             int tributeSlot = weakestMonster(playerField);
+            if (tributeSlot >= 0) playerGraveyard.add(playerField[tributeSlot]);
             if (tributeSlot >= 0) playerField[tributeSlot] = null;
         }
         int slot = firstEmpty(playerField);
@@ -147,13 +158,16 @@ public final class DuelEngine {
             CardDefinition defender = cpuField[defenderSlot];
             if (attacker.attack > defender.attack) {
                 cpuLP = Math.max(0, cpuLP - (attacker.attack - defender.attack));
+                playerGraveyard.add(defender);
                 cpuField[defenderSlot] = null;
                 message = attacker.name + " wins the battle";
             } else if (attacker.attack < defender.attack) {
                 playerLP = Math.max(0, playerLP - (defender.attack - attacker.attack));
+                playerGraveyard.add(attacker);
                 playerField[attackerSlot] = null;
                 message = attacker.name + " loses the battle";
             } else {
+                playerGraveyard.add(attacker);
                 playerField[attackerSlot] = null;
                 cpuField[defenderSlot] = null;
                 message = "Both monsters are removed";
