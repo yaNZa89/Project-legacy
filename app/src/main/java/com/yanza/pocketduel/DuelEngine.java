@@ -15,13 +15,13 @@ public final class DuelEngine {
     private final List<CardDefinition> cpuDeck = new ArrayList<CardDefinition>();
     private final List<CardDefinition> playerHand = new ArrayList<CardDefinition>();
     private final List<CardDefinition> cpuHand = new ArrayList<CardDefinition>();
-    private final CardDefinition[] playerField = new CardDefinition[3];
+    private final CardDefinition[] playerField = new CardDefinition[5];
     private final CardDefinition[] cpuField = new CardDefinition[3];
     private final boolean[] playerAttacked = new boolean[3];
     private final boolean[] cpuAttacked = new boolean[3];
 
-    private int playerLP = 4000;
-    private int cpuLP = 4000;
+    private int playerLP = 8000;
+    private int cpuLP = 8000;
     private int turn = 1;
     private int playerNormalSummons;
     private Phase phase = Phase.DRAW;
