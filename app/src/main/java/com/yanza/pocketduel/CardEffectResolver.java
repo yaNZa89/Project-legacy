@@ -57,10 +57,10 @@ public final class CardEffectResolver {
                         return "opponent attack negated";
                     }
                 });
-        register("PREVENT_DAMAGE", EffectDefinition.Timing.WHEN_ATTACKS, "NEGATE_ATTACK",
+        register("PREVENT_DAMAGE", EffectDefinition.Timing.WHEN_ATTACKS, "PREVENT_BATTLE_DAMAGE",
                 new Operation() {
                     public String execute(DuelEngine duel, CardDefinition source, int context) {
-                        return "opponent attack negated";
+                        return "battle damage prevented; battle proceeds";
                     }
                 });
         register("SPECIAL_SUMMON_IF_NO_MONSTERS", EffectDefinition.Timing.HAND_SPECIAL_SUMMON,
