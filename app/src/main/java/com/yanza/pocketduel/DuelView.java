@@ -203,8 +203,16 @@ public class DuelView extends View {
                 else hint = "Empty Monster Zone " + (selectedMonster + 1);
             }
         } else if (navRow == 1) {
-            hint = navColumn == 0 || navColumn == 6
-                    ? "Pendulum Zone selected" : "Spell/Trap Zone " + navColumn + " is empty in this prototype";
+            if (navColumn == 0 || navColumn == 6) hint = "Pendulum Zone selected";
+            else {
+                int slot = navColumn - 1;
+                CardDefinition[] zones = duel.getPlayerSpellTrap();
+                if (slot >= 0 && slot < zones.length && zones[slot] != null) {
+                    if (duel.isPlayerSpellTrapFaceDown(slot)) duel.activateSetTrap(slot);
+                    else openDetails(zones[slot]);
+                    hint = duel.getMessage();
+                } else hint = "Empty Spell/Trap Zone " + navColumn;
+            }
         } else if (navRow == 2) {
             if (navColumn == 0) {
                 hint = "Main Deck is face-down. Its contents cannot be inspected freely.";
@@ -219,6 +227,14 @@ public class DuelView extends View {
             selectedHand = clamp(navColumn, 0, Math.max(0, duel.getPlayerHand().size() - 1));
             if (duel.getPhase() == DuelEngine.Phase.BATTLE) {
                 hint = "Select a Monster Zone to attack";
+            } else if (selectedHand < duel.getPlayerHand().size()
+                    && duel.getPlayerHand().get(selectedHand).kind == CardDefinition.Kind.SPELL) {
+                duel.activateSpellFromHand(selectedHand);
+                hint = duel.getMessage();
+            } else if (selectedHand < duel.getPlayerHand().size()
+                    && duel.getPlayerHand().get(selectedHand).kind == CardDefinition.Kind.TRAP) {
+                duel.setTrapFromHand(selectedHand);
+                hint = duel.getMessage();
             } else {
                 summonMenu = true;
                 selectedSummonAction = 0;
@@ -505,7 +521,7 @@ public class DuelView extends View {
         drawPendulumZone(canvas, w - 7 - sideW, y, sideW, zoneH * 2 + rowGap, "P-R", playerSide ? duel.getPlayerPendulumRight() : null);
 
         drawZoneRow(canvas, field, start, y, zoneW, zoneH, gap, true, playerSide);
-        drawZoneRow(canvas, null, start, spellY, zoneW, zoneH, gap, false, false);
+        drawZoneRow(canvas, playerSide ? duel.getPlayerSpellTrap() : null, start, spellY, zoneW, zoneH, gap, false, playerSide);
 
         if (playerSide) {
             float pileY = spellY + zoneH + getHeight() * 0.012f;
@@ -519,7 +535,7 @@ public class DuelView extends View {
         for (int i = 0; i < 5; i++) {
             float x = start + i * (zoneW + gap);
             RectF rect = new RectF(x, y, x + zoneW, y + zoneH);
-            CardDefinition card = monsterRow && monsters != null ? monsters[i] : null;
+            CardDefinition card = monsters != null ? monsters[i] : null;
             boolean selected = monsterRow && playerSide && navRow == 0 && navColumn == i + 1;
             boolean rowSelected = playerSide && navRow == (monsterRow ? 0 : 1)
                     && navColumn == i + 1;
@@ -529,13 +545,15 @@ public class DuelView extends View {
             canvas.drawRoundRect(rect, 4, 4, paint);
             paint.setColor(card == null ? 0xffc6d5df : 0xff101b2b);
             paint.setTextSize(Math.max(7, getWidth() * 0.019f));
-            boolean hiddenOpponentCard = monsterRow && (playerSide
-                    ? duel.isPlayerMonsterFaceDown(i) : duel.isCpuMonsterFaceDown(i));
+            boolean hiddenOpponentCard = monsterRow ? (playerSide
+                    ? duel.isPlayerMonsterFaceDown(i) : duel.isCpuMonsterFaceDown(i))
+                    : playerSide && duel.isPlayerSpellTrapFaceDown(i);
             String label = monsterRow ? (card == null ? "M" + (i + 1)
                     : hiddenOpponentCard ? "SET" : shortName(card.name, 7))
-                    : "S/T " + (i + 1);
+                    : (card == null ? "S/T " + (i + 1)
+                    : hiddenOpponentCard ? "SET" : shortName(card.name, 7));
             canvas.drawText(label, x + 2, y + zoneH * 0.43f, paint);
-            if (card != null && !hiddenOpponentCard) {
+            if (card != null && !hiddenOpponentCard && monsterRow) {
                 paint.setTextSize(Math.max(7, getWidth() * 0.018f));
                 canvas.drawText("A" + card.attack + " D" + card.defense,
                         x + 2, y + zoneH * 0.78f, paint);
@@ -593,7 +611,8 @@ public class DuelView extends View {
             paint.setColor(selected ? 0xff172536 : 0xff101b2b);
             paint.setTextSize(Math.max(9, w * 0.024f));
             canvas.drawText(shortName(hand.get(i).name, 13), x + 4, rect.top + 18, paint);
-            canvas.drawText("ATK " + hand.get(i).attack, x + 4, rect.top + 35, paint);
+            canvas.drawText(hand.get(i).kind == CardDefinition.Kind.MONSTER
+                    ? "ATK " + hand.get(i).attack : hand.get(i).kind.name(), x + 4, rect.top + 35, paint);
         }
     }
 
