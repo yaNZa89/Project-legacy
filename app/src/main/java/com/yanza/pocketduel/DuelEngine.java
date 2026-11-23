@@ -31,16 +31,38 @@ public final class DuelEngine {
     private String message = "Duel started";
 
     public DuelEngine() {
+        this(null, null);
+    }
+
+    /** Starts the player with a supplied deck while the CPU uses its prototype deck. */
+    public DuelEngine(List<CardDefinition> customMainDeck, List<CardDefinition> customExtraDeck) {
+        if (customMainDeck == null || customMainDeck.isEmpty()) {
+            for (int copy = 0; copy < 3; copy++) {
+                for (CardDefinition card : CardCatalog.all()) {
+                    if (card.kind == CardDefinition.Kind.MONSTER && !isExtraDeckMonster(card)) {
+                        playerDeck.add(card);
+                    }
+                }
+            }
+        } else {
+            playerDeck.addAll(customMainDeck);
+        }
+        if (customExtraDeck == null) {
+            for (int copy = 0; copy < 3; copy++) {
+                for (CardDefinition card : CardCatalog.all()) {
+                    if (card.kind == CardDefinition.Kind.MONSTER && isExtraDeckMonster(card)) {
+                        playerExtraDeck.add(card);
+                    }
+                }
+            }
+        } else {
+            playerExtraDeck.addAll(customExtraDeck);
+        }
         for (int copy = 0; copy < 3; copy++) {
             for (CardDefinition card : CardCatalog.all()) {
                 if (card.kind == CardDefinition.Kind.MONSTER) {
-                    if (isExtraDeckMonster(card)) {
-                        playerExtraDeck.add(card);
-                        cpuExtraDeck.add(card);
-                    } else {
-                        playerDeck.add(card);
-                        cpuDeck.add(card);
-                    }
+                    if (isExtraDeckMonster(card)) cpuExtraDeck.add(card);
+                    else cpuDeck.add(card);
                 }
             }
         }
