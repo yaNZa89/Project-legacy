@@ -12,6 +12,10 @@ import java.util.List;
 
 /** Portrait duel screen with context-sensitive keypad controls and card inspection. */
 public class DuelView extends View {
+    public interface Listener { void onExitToMenu(); void onDuelAgain(); }
+    private final Listener listener;
+    private boolean pauseMenu;
+    private int selectedExitOption;
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final DuelEngine duel = new DuelEngine();
     private int selectedHand;
@@ -30,12 +34,35 @@ public class DuelView extends View {
     private int detailScroll;
     private String hint = "Keypad: 2/8 row | 4/6 cursor | 5 action | * phases | # back";
 
-    public DuelView(Context context) {
+    public DuelView(Context context, Listener listener) {
         super(context);
+        this.listener = listener;
         setFocusable(true);
     }
 
     public boolean handleKey(int key) {
+        if (duel.getPhase() == DuelEngine.Phase.FINISHED) {
+            if (key == KeyEvent.KEYCODE_4 || key == KeyEvent.KEYCODE_DPAD_LEFT || key == KeyEvent.KEYCODE_6 || key == KeyEvent.KEYCODE_DPAD_RIGHT) selectedExitOption = 1 - selectedExitOption;
+            else if (key == KeyEvent.KEYCODE_5 || key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER) {
+                if (selectedExitOption == 0) { if (listener != null) listener.onDuelAgain(); }
+                else if (listener != null) listener.onExitToMenu();
+            } else if (key == KeyEvent.KEYCODE_0) { selectedExitOption = 1; if (listener != null) listener.onExitToMenu(); }
+            else return true;
+            invalidate(); return true;
+        }
+        if (key == KeyEvent.KEYCODE_0) {
+            if (pauseMenu) pauseMenu = false;
+            else { pauseMenu = true; selectedExitOption = 0; }
+            invalidate(); return true;
+        }
+        if (pauseMenu) {
+            if (key == KeyEvent.KEYCODE_4 || key == KeyEvent.KEYCODE_DPAD_LEFT || key == KeyEvent.KEYCODE_6 || key == KeyEvent.KEYCODE_DPAD_RIGHT) selectedExitOption = 1 - selectedExitOption;
+            else if (key == KeyEvent.KEYCODE_5 || key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER) {
+                if (selectedExitOption == 0) pauseMenu = false;
+                else if (listener != null) listener.onExitToMenu();
+            } else return true;
+            invalidate(); return true;
+        }
         if (detailCard != null) {
             if (key == KeyEvent.KEYCODE_7) {
                 detailScroll = Math.max(0, detailScroll - 1);
@@ -95,16 +122,6 @@ public class DuelView extends View {
                 phaseMenu = false;
             } else return false;
             invalidate();
-            return true;
-        }
-
-        if (duel.getPhase() == DuelEngine.Phase.FINISHED) {
-            if (key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER
-                    || key == KeyEvent.KEYCODE_5) {
-                hint = "Duel finished - restart the app for a new duel";
-                invalidate();
-                return true;
-            }
             return true;
         }
 
@@ -311,6 +328,33 @@ public class DuelView extends View {
         if (phaseMenu) drawPhaseMenu(canvas, w, h);
         if (detailCard != null) drawCardDetails(canvas, w, h);
         if (summonMenu) drawSummonMenu(canvas, w, h);
+        if (pauseMenu) drawExitMenu(canvas, w, h, false);
+        if (duel.getPhase() == DuelEngine.Phase.FINISHED) drawExitMenu(canvas, w, h, true);
+    }
+
+    private void drawExitMenu(Canvas canvas, float w, float h, boolean finished) {
+        float left = w * 0.09f, right = w * 0.91f;
+        float top = h * 0.39f, bottom = h * 0.62f;
+        paint.setColor(0xf0142637);
+        canvas.drawRoundRect(new RectF(left, top, right, bottom), 12, 12, paint);
+        paint.setTextAlign(Paint.Align.CENTER);
+        paint.setColor(0xffffd477);
+        paint.setTextSize(Math.max(16, w * 0.048f));
+        canvas.drawText(finished ? (duel.getPlayerLP() > 0 ? "YOU WIN!" : "YOU LOSE") : "DUEL PAUSED", w / 2f, top + 32, paint);
+        String[] labels = finished ? new String[]{"DUEL AGAIN", "MAIN MENU"} : new String[]{"RESUME", "EXIT TO MAIN MENU"};
+        for (int i = 0; i < labels.length; i++) {
+            float x = left + 10 + i * ((right - left - 25) / 2f);
+            float width = (right - left - 25) / 2f;
+            paint.setColor(selectedExitOption == i ? 0xffffc857 : 0xff29465a);
+            canvas.drawRoundRect(new RectF(x, top + 54, x + width, top + 94), 6, 6, paint);
+            paint.setColor(selectedExitOption == i ? 0xff172536 : 0xfff0f5f8);
+            paint.setTextSize(Math.max(9, w * 0.027f));
+            canvas.drawText(labels[i], x + width / 2f, top + 79, paint);
+        }
+        paint.setColor(0xffd9eaf4);
+        paint.setTextSize(Math.max(10, w * 0.028f));
+        canvas.drawText("4/6 CHOOSE   5 CONFIRM", w / 2f, bottom - 12, paint);
+        paint.setTextAlign(Paint.Align.LEFT);
     }
 
 
