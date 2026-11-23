@@ -85,10 +85,10 @@ public final class DeckBuilderView extends View {
             else if(k==KeyEvent.KEYCODE_8||k==KeyEvent.KEYCODE_DPAD_DOWN)selected=Math.min(3,selected+1);
             else if(k==KeyEvent.KEYCODE_5||k==KeyEvent.KEYCODE_ENTER||k==KeyEvent.KEYCODE_DPAD_CENTER)deckAction();
             else return false;
-        } else if(k==KeyEvent.KEYCODE_1) changeTab(-1);
-        else if(k==KeyEvent.KEYCODE_3) changeTab(1);
-        else if(k==KeyEvent.KEYCODE_STAR) { grid=!grid;detail=false;selected=0;scroll=0;message=grid?"Grid view":"List view"; }
-        else if(k==KeyEvent.KEYCODE_POUND) { detail=!detail;message=detail?"Card details":"Card overview"; }
+        } else if(k==KeyEvent.KEYCODE_1) { grid=true;detail=false;selected=0;scroll=0;message="Grid view"; }
+        else if(k==KeyEvent.KEYCODE_3) { grid=false;detail=false;selected=0;scroll=0;message="List view"; }
+        else if(k==KeyEvent.KEYCODE_STAR) changeTab(-1);
+        else if(k==KeyEvent.KEYCODE_POUND) changeTab(1);
         else if(k==KeyEvent.KEYCODE_7) { tab=DECK_MENU;selected=0;message="Manage saved decks"; }
         else if(k==KeyEvent.KEYCODE_2||k==KeyEvent.KEYCODE_DPAD_UP) moveVertical(-1);
         else if(k==KeyEvent.KEYCODE_8||k==KeyEvent.KEYCODE_DPAD_DOWN) moveVertical(1);
@@ -197,7 +197,7 @@ public final class DeckBuilderView extends View {
             for(int i=0;i<7;i++){int ix=scroll+i;if(ix>=list.size())break;CardDefinition card=list.get(ix);
                 drawRow(c,w,h,i,card.name+(card.kind==CardDefinition.Kind.MONSTER?"  "+card.attack+"/"+card.defense:"  "+card.kind.name()),ix==selected);}
         }
-        footer(c,w,h,"2/8/4/6 CURSOR   1/3 TAB   * GRID/LIST   # DETAILS   5 SELECT   7 DECKS   0 BACK");
+        footer(c,w,h,"2/8/4/6 CURSOR   1 GRID   3 LIST   * PREV TAB   # NEXT TAB   5 SELECT   7 DECKS   0 BACK");
     }
     private void drawRow(Canvas c,float w,float h,int i,String s,boolean chosen) {
         float top=h*.30f+i*h*.075f;p.setColor(chosen?0xFFB87832:0xFF294354);
