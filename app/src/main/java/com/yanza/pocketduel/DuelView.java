@@ -523,7 +523,7 @@ public class DuelView extends View {
         drawPendulumZone(canvas, w - 7 - sideW, y, sideW, zoneH * 2 + rowGap, "P-R", playerSide ? duel.getPlayerPendulumRight() : null);
 
         drawZoneRow(canvas, field, start, y, zoneW, zoneH, gap, true, playerSide);
-        drawZoneRow(canvas, playerSide ? duel.getPlayerSpellTrap() : null, start, spellY, zoneW, zoneH, gap, false, playerSide);
+        drawZoneRow(canvas, playerSide ? duel.getPlayerSpellTrap() : duel.getCpuSpellTrap(), start, spellY, zoneW, zoneH, gap, false, playerSide);
 
         if (playerSide) {
             float pileY = spellY + zoneH + getHeight() * 0.012f;
@@ -549,7 +549,7 @@ public class DuelView extends View {
             paint.setTextSize(Math.max(7, getWidth() * 0.019f));
             boolean hiddenOpponentCard = monsterRow ? (playerSide
                     ? duel.isPlayerMonsterFaceDown(i) : duel.isCpuMonsterFaceDown(i))
-                    : playerSide && duel.isPlayerSpellTrapFaceDown(i);
+                    : (playerSide ? duel.isPlayerSpellTrapFaceDown(i) : duel.isCpuSpellTrapFaceDown(i));
             String label = monsterRow ? (card == null ? "M" + (i + 1)
                     : hiddenOpponentCard ? "SET" : shortName(card.name, 7))
                     : (card == null ? "S/T " + (i + 1)
