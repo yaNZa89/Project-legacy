@@ -221,7 +221,9 @@ public class DuelView extends View {
                 selectedDeck = 0;
                 deckBrowser = true;
             } else {
-                hint = "Field Zone selected - card placement is not implemented yet";
+                CardDefinition fieldSpell = duel.getPlayerFieldSpell();
+                if (fieldSpell != null) openDetails(fieldSpell);
+                else hint = "Field Zone is empty";
             }
         } else {
             selectedHand = clamp(navColumn, 0, Math.max(0, duel.getPlayerHand().size() - 1));
@@ -578,7 +580,7 @@ public class DuelView extends View {
             canvas.drawText(labels[i], x + 3, y + pileH * 0.42f, paint);
             paint.setTextSize(Math.max(7, w * 0.020f));
             String pileInfo = i == 0 ? "FD " + counts[i]
-                    : i == 4 ? "ZONE" : String.valueOf(counts[i]);
+                    : i == 4 ? (duel.getPlayerFieldSpell() == null ? "EMPTY" : "ACTIVE") : String.valueOf(counts[i]);
             canvas.drawText(pileInfo, x + 3, y + pileH * 0.82f, paint);
         }
     }
