@@ -429,6 +429,7 @@ public final class DuelEngine {
                 cpuField[i] = null;
             } else {
                 playerLP = Math.max(0, playerLP - (playerField[target].attack - attacker.attack));
+                playerGraveyard.add(attacker);
                 cpuField[i] = null;
                 cpuMonsterFaceDown[i] = false;
             }
