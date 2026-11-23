@@ -57,7 +57,16 @@ public final class DeckBuilderView extends View {
     }
     private void makeStarterDeck() {
         main.clear();
-        for(CardDefinition c:cards) if(!isExtra(c)&&main.size()<40) main.add(c.id);
+        for(CardDefinition c:cards) {
+            if(c.kind==CardDefinition.Kind.MONSTER && !isExtra(c) && main.size()<36) {
+                main.add(c.id);
+            }
+        }
+        // Include a small Spell/Trap package so the first duel can exercise those rules.
+        main.add("vitality_charm");
+        main.add("tactical_draw");
+        main.add("quick_burst");
+        main.add("mirror_guard");
     }
     private void saveActiveDeck() {
         prefs.edit().putString(key(activeDeck),join(main)+";"+join(extra)).apply();
