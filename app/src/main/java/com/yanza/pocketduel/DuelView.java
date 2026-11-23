@@ -104,7 +104,7 @@ public class DuelView extends View {
         if (summonMenu) {
             if (key == KeyEvent.KEYCODE_4 || key == KeyEvent.KEYCODE_DPAD_LEFT
                     || key == KeyEvent.KEYCODE_6 || key == KeyEvent.KEYCODE_DPAD_RIGHT) {
-                selectedSummonAction = 1 - selectedSummonAction;
+                selectedSummonAction = (selectedSummonAction + 1) % 3;
             } else if (key == KeyEvent.KEYCODE_5 || key == KeyEvent.KEYCODE_DPAD_CENTER
                     || key == KeyEvent.KEYCODE_ENTER) {
                 executeSummonAction();
@@ -235,9 +235,13 @@ public class DuelView extends View {
             if (selectedSummonAction == 0) {
                 if (card.level >= 5) duel.tributeSummonFromHand(selectedHand);
                 else duel.summonFromHand(selectedHand);
-            } else {
+            } else if (selectedSummonAction == 1) {
                 if (card.level >= 5) duel.tributeSetFromHand(selectedHand);
                 else duel.setFromHand(selectedHand);
+            } else if (card.isPendulumMonster() && (duel.getPlayerPendulumLeft() == null || duel.getPlayerPendulumRight() == null)) {
+                duel.placePendulumFromHand(selectedHand);
+            } else {
+                duel.pendulumSummonFromHand();
             }
             selectedHand = clamp(selectedHand, 0, Math.max(0, duel.getPlayerHand().size() - 1));
             navColumn = selectedHand;
@@ -373,10 +377,10 @@ public class DuelView extends View {
         paint.setColor(0xffffd477);
         paint.setTextSize(16);
         canvas.drawText("MONSTER ACTION", w / 2f, top + 25, paint);
-        String[] labels = {"SUMMON", "SET FACE-DOWN"};
+        String[] labels = {"SUMMON", "SET", "PENDULUM"};
         for (int i = 0; i < labels.length; i++) {
-            float x = left + 10 + i * ((right - left - 25) / 2f);
-            float width = (right - left - 25) / 2f;
+            float width = (right - left - 30) / 3f;
+            float x = left + 10 + i * (width + 5);
             paint.setColor(selectedSummonAction == i ? 0xffffc857 : 0xff29465a);
             canvas.drawRoundRect(new RectF(x, top + 38, x + width, top + 72), 6, 6, paint);
             paint.setColor(selectedSummonAction == i ? 0xff172536 : 0xfff0f5f8);
@@ -497,8 +501,8 @@ public class DuelView extends View {
         float rowGap = getHeight() * 0.010f;
         float spellY = y + zoneH + rowGap;
 
-        drawPendulumZone(canvas, 7, y, sideW, zoneH * 2 + rowGap, "P-L");
-        drawPendulumZone(canvas, w - 7 - sideW, y, sideW, zoneH * 2 + rowGap, "P-R");
+        drawPendulumZone(canvas, 7, y, sideW, zoneH * 2 + rowGap, "P-L", playerSide ? duel.getPlayerPendulumLeft() : null);
+        drawPendulumZone(canvas, w - 7 - sideW, y, sideW, zoneH * 2 + rowGap, "P-R", playerSide ? duel.getPlayerPendulumRight() : null);
 
         drawZoneRow(canvas, field, start, y, zoneW, zoneH, gap, true, playerSide);
         drawZoneRow(canvas, null, start, spellY, zoneW, zoneH, gap, false, false);
@@ -562,14 +566,19 @@ public class DuelView extends View {
     }
 
     private void drawPendulumZone(Canvas canvas, float x, float y, float width,
-                                  float height, String label) {
+                                  float height, String label, CardDefinition card) {
         RectF zone = new RectF(x, y, x + width, y + height);
-        paint.setColor(0xff294f68);
+        paint.setColor(card == null ? 0xff294f68 : 0xff8b6740);
         canvas.drawRoundRect(zone, 5, 5, paint);
         paint.setColor(0xffd9eaf4);
         paint.setTextSize(Math.max(7, getWidth() * 0.019f));
-        canvas.drawText("PEND", x + 2, y + height * 0.43f, paint);
-        canvas.drawText(label, x + 2, y + height * 0.68f, paint);
+        canvas.drawText(label, x + 2, y + height * 0.30f, paint);
+        canvas.drawText(card == null ? "EMPTY" : "S" + card.pendulumScale,
+                x + 2, y + height * 0.55f, paint);
+        if (card != null) {
+            paint.setTextSize(Math.max(6, getWidth() * 0.016f));
+            canvas.drawText(shortName(card.name, 8), x + 2, y + height * 0.78f, paint);
+        }
     }
 
     private void drawHand(Canvas canvas, float w, float h) {
