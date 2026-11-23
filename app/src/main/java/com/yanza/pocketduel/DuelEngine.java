@@ -524,7 +524,7 @@ public final class DuelEngine {
 
     private int draw(List<CardDefinition> deck, List<CardDefinition> hand, int count) {
         int drawn = 0;
-        for (int i = 0; i < count && !deck.isEmpty() && hand.size() < 7; i++) {
+        for (int i = 0; i < count && !deck.isEmpty(); i++) {
             hand.add(deck.remove(0));
             drawn++;
         }
