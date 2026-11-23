@@ -1,5 +1,6 @@
 package com.yanza.pocketduel;
 
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Canvas;
@@ -7,6 +8,8 @@ import android.graphics.Paint;
 import android.graphics.RectF;
 import android.view.KeyEvent;
 import android.view.View;
+import android.widget.EditText;
+import android.text.InputType;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,6 +26,7 @@ public final class DeckBuilderView extends View {
     private int tab=CARD_LIST, selected=0, scroll=0, gridColumn=0;
     private boolean grid=true, detail=false;
     private String activeDeck="Deck 1", message="5 add/remove | 7 deck options";
+    private String searchQuery="";
 
     public DeckBuilderView(Context c, Listener l) {
         super(c); listener=l;
@@ -95,6 +99,7 @@ public final class DeckBuilderView extends View {
         else if(k==KeyEvent.KEYCODE_STAR) changeTab(-1);
         else if(k==KeyEvent.KEYCODE_POUND) changeTab(1);
         else if(k==KeyEvent.KEYCODE_7) { tab=DECK_MENU;selected=0;message="Manage saved decks"; }
+        else if(k==KeyEvent.KEYCODE_9) { openCardSearch(); }
         else if(k==KeyEvent.KEYCODE_2||k==KeyEvent.KEYCODE_DPAD_UP) moveVertical(-1);
         else if(k==KeyEvent.KEYCODE_8||k==KeyEvent.KEYCODE_DPAD_DOWN) moveVertical(1);
         else if(k==KeyEvent.KEYCODE_4||k==KeyEvent.KEYCODE_DPAD_LEFT) moveHorizontal(-1);
@@ -115,7 +120,36 @@ public final class DeckBuilderView extends View {
         List<CardDefinition> out=new ArrayList<CardDefinition>();
         if(tab==CARD_LIST) { out.addAll(cards); }
         else { List<String> ids=tab==MAIN_DECK?main:extra;for(String id:ids){CardDefinition c=CardCatalog.find(id);if(c!=null)out.add(c);} }
+        if(searchQuery.length()>0) {
+            List<CardDefinition> matches=new ArrayList<CardDefinition>();
+            String query=searchQuery.toLowerCase();
+            for(CardDefinition card:out) if(card.name.toLowerCase().contains(query)) matches.add(card);
+            return matches;
+        }
         return out;
+    }
+
+    private void openCardSearch() {
+        final EditText input=new EditText(getContext());
+        input.setSingleLine(true);
+        input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+        input.setHint("Nama kartu");
+        input.setText(searchQuery);
+        new AlertDialog.Builder(getContext())
+                .setTitle("Cari kartu berdasarkan nama")
+                .setView(input)
+                .setPositiveButton("CARI", (dialog, which) -> {
+                    searchQuery=input.getText().toString().trim();
+                    selected=0;scroll=0;detail=false;
+                    message=searchQuery.length()==0?"Pencarian dibersihkan":"Hasil: "+items().size()+" kartu";
+                    invalidate();
+                })
+                .setNeutralButton("HAPUS", (dialog, which) -> {
+                    searchQuery="";selected=0;scroll=0;detail=false;
+                    message="Pencarian dibersihkan";invalidate();
+                })
+                .setNegativeButton("BATAL", null)
+                .show();
     }
     private void moveVertical(int d) {
         int cols=grid?3:1, size=items().size();
@@ -216,7 +250,7 @@ public final class DeckBuilderView extends View {
             for(int i=0;i<7;i++){int ix=scroll+i;if(ix>=list.size())break;CardDefinition card=list.get(ix);
                 drawRow(c,w,h,i,card.name+(card.kind==CardDefinition.Kind.MONSTER?"  "+card.attack+"/"+card.defense:"  "+card.kind.name()),ix==selected);}
         }
-        footer(c,w,h,detail?"5 ADD/REMOVE   0 BACK":"2/8/4/6 CURSOR   1 GRID   3 LIST   * PREV   # NEXT   5 DETAIL   7 DECKS   0 BACK");
+        footer(c,w,h,detail?"5 ADD/REMOVE   0 BACK":"2/8/4/6 CURSOR   1 GRID   3 LIST   * PREV   # NEXT   5 DETAIL   9 SEARCH   7 DECKS   0 BACK");
     }
     private void drawRow(Canvas c,float w,float h,int i,String s,boolean chosen) {
         float top=h*.30f+i*h*.075f;p.setColor(chosen?0xFFB87832:0xFF294354);
