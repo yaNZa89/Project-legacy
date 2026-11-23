@@ -26,7 +26,7 @@ public final class DeckBuilderView extends View {
     private final SharedPreferences prefs;
     private int tab=CARD_LIST, selected=0, scroll=0, gridColumn=0;
     private boolean grid=true, detail=false;
-    private String activeDeck="Deck 1", message="5 add/remove | 7 deck options";
+    private String activeDeck="Deck 1", message="D-PAD navigate | OK add/remove | 7 deck options";
     private String searchQuery="";
 
     public DeckBuilderView(Context c, Listener l) {
@@ -91,8 +91,8 @@ public final class DeckBuilderView extends View {
             else if(tab==DECK_MENU){tab=CARD_LIST;selected=0;message="Deck: "+activeDeck;}
             else { saveActiveDeck(); if(listener!=null)listener.onBackToMenu(); }
         } else if(tab==DECK_MENU) {
-            if(k==KeyEvent.KEYCODE_2||k==KeyEvent.KEYCODE_DPAD_UP)selected=Math.max(0,selected-1);
-            else if(k==KeyEvent.KEYCODE_8||k==KeyEvent.KEYCODE_DPAD_DOWN)selected=Math.min(3,selected+1);
+            if(k==KeyEvent.KEYCODE_DPAD_UP)selected=Math.max(0,selected-1);
+            else if(k==KeyEvent.KEYCODE_DPAD_DOWN)selected=Math.min(3,selected+1);
             else if(k==KeyEvent.KEYCODE_5||k==KeyEvent.KEYCODE_ENTER||k==KeyEvent.KEYCODE_DPAD_CENTER)deckAction();
             else return false;
         } else if(k==KeyEvent.KEYCODE_1) { grid=true;detail=false;selected=0;scroll=0;message="Grid view"; }
@@ -101,10 +101,10 @@ public final class DeckBuilderView extends View {
         else if(k==KeyEvent.KEYCODE_POUND) changeTab(1);
         else if(k==KeyEvent.KEYCODE_7) { tab=DECK_MENU;selected=0;message="Manage saved decks"; }
         else if(k==KeyEvent.KEYCODE_9) { openCardSearch(); }
-        else if(k==KeyEvent.KEYCODE_2||k==KeyEvent.KEYCODE_DPAD_UP) moveVertical(-1);
-        else if(k==KeyEvent.KEYCODE_8||k==KeyEvent.KEYCODE_DPAD_DOWN) moveVertical(1);
-        else if(k==KeyEvent.KEYCODE_4||k==KeyEvent.KEYCODE_DPAD_LEFT) moveHorizontal(-1);
-        else if(k==KeyEvent.KEYCODE_6||k==KeyEvent.KEYCODE_DPAD_RIGHT) moveHorizontal(1);
+        else if(k==KeyEvent.KEYCODE_DPAD_UP) moveVertical(-1);
+        else if(k==KeyEvent.KEYCODE_DPAD_DOWN) moveVertical(1);
+        else if(k==KeyEvent.KEYCODE_DPAD_LEFT) moveHorizontal(-1);
+        else if(k==KeyEvent.KEYCODE_DPAD_RIGHT) moveHorizontal(1);
         else if(k==KeyEvent.KEYCODE_5||k==KeyEvent.KEYCODE_ENTER||k==KeyEvent.KEYCODE_DPAD_CENTER) activate();
         else return false;
         invalidate(); return true;
@@ -233,7 +233,7 @@ public final class DeckBuilderView extends View {
         if(tab==DECK_MENU) {
             String[] opts={"NEW DECK","SAVE DECK","LOAD NEXT DECK","DELETE DECK"};
             for(int i=0;i<4;i++)drawRow(c,w,h,i,opts[i],selected==i);
-            footer(c,w,h,"2/8 SELECT   5 CONFIRM   0 BACK");
+            footer(c,w,h,"D-PAD SELECT   OK CONFIRM   0 BACK");
             return;
         }
         p.setTextAlign(Paint.Align.CENTER);p.setColor(0xFFFFD36A);
