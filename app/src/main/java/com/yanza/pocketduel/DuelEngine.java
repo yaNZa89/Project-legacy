@@ -409,6 +409,7 @@ public final class DuelEngine {
                 int defense = playerField[target].defense;
                 playerMonsterFaceDown[target] = false;
                 if (attacker.attack > defense) {
+                    playerGraveyard.add(playerField[target]);
                     playerField[target] = null;
                     message = "Your face-down monster was revealed and destroyed";
                 } else {
@@ -416,11 +417,18 @@ public final class DuelEngine {
                 }
             } else if (attacker.attack > playerField[target].attack) {
                 playerLP = Math.max(0, playerLP - (attacker.attack - playerField[target].attack));
+                playerGraveyard.add(playerField[target]);
+                playerMonsterFaceDown[target] = false;
                 playerField[target] = null;
             } else if (attacker.attack == playerField[target].attack) {
+                playerGraveyard.add(playerField[target]);
+                playerGraveyard.add(attacker);
+                playerMonsterFaceDown[target] = false;
+                cpuMonsterFaceDown[i] = false;
                 playerField[target] = null;
                 cpuField[i] = null;
             } else {
+                playerLP = Math.max(0, playerLP - (playerField[target].attack - attacker.attack));
                 cpuField[i] = null;
                 cpuMonsterFaceDown[i] = false;
             }
