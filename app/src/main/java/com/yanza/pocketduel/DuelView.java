@@ -13,7 +13,12 @@ import java.util.List;
 /** Portrait duel screen with context-sensitive keypad controls and card inspection. */
 public class DuelView extends View {
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final DuelEngine duel = new DuelEngine();
+    private DuelEngine duel = new DuelEngine();
+    private boolean pauseMenu;
+    private boolean titleScreen;
+    private boolean opponentMenu;
+    private int selectedPauseOption;
+    private int selectedOpponent;
     private int selectedHand;
     private int selectedMonster;
     private int selectedDeck;
@@ -37,6 +42,66 @@ public class DuelView extends View {
     }
 
     public boolean handleKey(int key) {
+        if (titleScreen) {
+            if (key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER) {
+                titleScreen = false;
+                duel = new DuelEngine();
+                resetArenaCursor();
+                hint = duel.getMessage();
+            } else if (key == KeyEvent.KEYCODE_BACK || key == KeyEvent.KEYCODE_POUND) {
+                titleScreen = false;
+            } else return false;
+            invalidate();
+            return true;
+        }
+        if (opponentMenu) {
+            if (key == KeyEvent.KEYCODE_DPAD_UP || key == KeyEvent.KEYCODE_DPAD_DOWN) {
+                selectedOpponent = 0;
+            } else if (key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER) {
+                opponentMenu = false;
+                pauseMenu = false;
+                duel = new DuelEngine();
+                resetArenaCursor();
+                hint = "Opponent selected: CPU";
+            } else if (key == KeyEvent.KEYCODE_POUND || key == KeyEvent.KEYCODE_BACK) {
+                opponentMenu = false;
+                pauseMenu = true;
+            } else return false;
+            invalidate();
+            return true;
+        }
+        if (pauseMenu) {
+            if (key == KeyEvent.KEYCODE_DPAD_UP) {
+                selectedPauseOption = clamp(selectedPauseOption - 1, 0, 3);
+            } else if (key == KeyEvent.KEYCODE_DPAD_DOWN) {
+                selectedPauseOption = clamp(selectedPauseOption + 1, 0, 3);
+            } else if (key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER) {
+                if (selectedPauseOption == 0 && duel.getPhase() != DuelEngine.Phase.FINISHED) {
+                    pauseMenu = false;
+                } else if (selectedPauseOption == 1) {
+                    pauseMenu = false;
+                    duel = new DuelEngine();
+                    resetArenaCursor();
+                    hint = "Duel restarted";
+                } else if (selectedPauseOption == 2) {
+                    opponentMenu = true;
+                    selectedOpponent = 0;
+                } else {
+                    pauseMenu = false;
+                    titleScreen = true;
+                }
+            } else if (key == KeyEvent.KEYCODE_POUND || key == KeyEvent.KEYCODE_BACK) {
+                if (duel.getPhase() != DuelEngine.Phase.FINISHED) pauseMenu = false;
+            } else return false;
+            invalidate();
+            return true;
+        }
+        if (key == KeyEvent.KEYCODE_SOFT_RIGHT) {
+            pauseMenu = true;
+            selectedPauseOption = 0;
+            invalidate();
+            return true;
+        }
         if (detailCard != null) {
             if (key == KeyEvent.KEYCODE_DPAD_UP) {
                 detailScroll = Math.max(0, detailScroll - 1);
@@ -99,11 +164,7 @@ public class DuelView extends View {
         }
 
         if (duel.getPhase() == DuelEngine.Phase.FINISHED) {
-            if (key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER) {
-                hint = "Duel finished - restart the app for a new duel";
-                invalidate();
-                return true;
-            }
+            invalidate();
             return true;
         }
 
@@ -315,8 +376,84 @@ public class DuelView extends View {
         if (phaseMenu) drawPhaseMenu(canvas, w, h);
         if (detailCard != null) drawCardDetails(canvas, w, h);
         if (summonMenu) drawSummonMenu(canvas, w, h);
+        if (pauseMenu) drawPauseMenu(canvas, w, h);
+        if (opponentMenu) drawOpponentMenu(canvas, w, h);
+        if (titleScreen) drawTitleScreen(canvas, w, h);
     }
 
+
+
+    private void resetArenaCursor() {
+        selectedHand = 0;
+        selectedMonster = 0;
+        selectedDeck = 0;
+        navRow = 3;
+        navColumn = 0;
+        choosingMonster = false;
+        phaseMenu = false;
+        summonMenu = false;
+        deckBrowser = false;
+        detailCard = null;
+        detailScroll = 0;
+        selectedPhaseIndex = 0;
+    }
+
+    private void drawPauseMenu(Canvas canvas, float w, float h) {
+        String[] labels = {"RESUME", "DUEL AGAIN", "CHOOSE OPPONENT", "MAIN SCREEN"};
+        float left = w * 0.13f, top = h * 0.30f, width = w * 0.74f;
+        paint.setColor(0xf0142637);
+        canvas.drawRoundRect(new RectF(left, top, left + width, top + 260), 12, 12, paint);
+        paint.setTextAlign(Paint.Align.CENTER);
+        paint.setColor(0xffffd477);
+        paint.setTextSize(20);
+        canvas.drawText(duel.getPhase() == DuelEngine.Phase.FINISHED ? "DUEL FINISHED" : "PAUSE", w / 2f, top + 30, paint);
+        for (int i = 0; i < labels.length; i++) {
+            float y = top + 48 + i * 48;
+            paint.setColor(selectedPauseOption == i ? 0xffffc857 : 0xff29465a);
+            canvas.drawRoundRect(new RectF(left + 12, y, left + width - 12, y + 38), 6, 6, paint);
+            paint.setColor(selectedPauseOption == i ? 0xff172536 : 0xfff0f5f8);
+            paint.setTextSize(14);
+            canvas.drawText(labels[i], w / 2f, y + 25, paint);
+        }
+        paint.setColor(0xffd9eaf4);
+        paint.setTextSize(10);
+        canvas.drawText("D-pad select | Center confirm | # close", w / 2f, top + 250, paint);
+        paint.setTextAlign(Paint.Align.LEFT);
+    }
+
+    private void drawOpponentMenu(Canvas canvas, float w, float h) {
+        float left = w * 0.13f, top = h * 0.36f, width = w * 0.74f;
+        paint.setColor(0xf0142637);
+        canvas.drawRoundRect(new RectF(left, top, left + width, top + 150), 12, 12, paint);
+        paint.setTextAlign(Paint.Align.CENTER);
+        paint.setColor(0xffffd477);
+        paint.setTextSize(18);
+        canvas.drawText("CHOOSE OPPONENT", w / 2f, top + 32, paint);
+        paint.setColor(0xffffc857);
+        canvas.drawRoundRect(new RectF(left + 14, top + 52, left + width - 14, top + 98), 7, 7, paint);
+        paint.setColor(0xff172536);
+        paint.setTextSize(15);
+        canvas.drawText("CPU OPPONENT", w / 2f, top + 80, paint);
+        paint.setColor(0xffd9eaf4);
+        paint.setTextSize(10);
+        canvas.drawText("Center start | # back", w / 2f, top + 128, paint);
+        paint.setTextAlign(Paint.Align.LEFT);
+    }
+
+    private void drawTitleScreen(Canvas canvas, float w, float h) {
+        paint.setColor(0xff101b2b);
+        canvas.drawRect(0, 0, w, h, paint);
+        paint.setTextAlign(Paint.Align.CENTER);
+        paint.setColor(0xffffd477);
+        paint.setTextSize(Math.max(25, w * 0.085f));
+        canvas.drawText("POCKET DUEL", w / 2f, h * 0.30f, paint);
+        paint.setColor(0xffe7edf2);
+        paint.setTextSize(16);
+        canvas.drawText("Press D-pad center to start a duel", w / 2f, h * 0.48f, paint);
+        paint.setTextSize(11);
+        canvas.drawText("Deck Builder is the next module to implement", w / 2f, h * 0.54f, paint);
+        paint.setTextAlign(Paint.Align.LEFT);
+    }
 
     private void drawSummonMenu(Canvas canvas, float w, float h) {
         float left = w * 0.12f, right = w * 0.88f;
