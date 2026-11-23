@@ -312,8 +312,13 @@ public class DuelView extends View {
                 else hint = "Empty Monster Zone " + (selectedMonster + 1);
             }
         } else if (navRow == 1) {
-            hint = navColumn == 0 || navColumn == 6
-                    ? "Pendulum Zone selected" : "Spell/Trap Zone " + navColumn + " is empty in this prototype";
+            if (navColumn == 0 || navColumn == 6) {
+                hint = "Pendulum Zone selected";
+            } else {
+                CardDefinition card = duel.getPlayerSpellTrap()[navColumn - 1];
+                if (card == null) hint = "Empty Spell/Trap Zone " + navColumn;
+                else openDetails(card);
+            }
         } else if (navRow == 2) {
             if (navColumn == 0) {
                 hint = "Main Deck is face-down. Its contents cannot be inspected freely.";
@@ -713,7 +718,7 @@ public class DuelView extends View {
         paint.setTextAlign(Paint.Align.CENTER);
         paint.setColor(0xffffd477);
         paint.setTextSize(16);
-        canvas.drawText("MONSTER ACTION", w / 2f, top + 25, paint);
+        canvas.drawText("CARD ACTION", w / 2f, top + 25, paint);
         List<CardDefinition> hand = duel.getPlayerHand();
         CardDefinition selected = selectedHand >= 0 && selectedHand < hand.size()
                 ? hand.get(selectedHand) : null;
@@ -869,7 +874,8 @@ public class DuelView extends View {
         for (int i = 0; i < 5; i++) {
             float x = start + i * (zoneW + gap);
             RectF rect = new RectF(x, y, x + zoneW, y + zoneH);
-            CardDefinition card = monsterRow && monsters != null ? monsters[i] : null;
+            CardDefinition card = monsterRow && monsters != null ? monsters[i]
+                    : !monsterRow && playerSide ? duel.getPlayerSpellTrap()[i] : null;
             boolean selected = monsterRow && playerSide && navRow == 0 && navColumn == i + 1;
             boolean rowSelected = playerSide && navRow == (monsterRow ? 0 : 1)
                     && navColumn == i + 1;
@@ -883,7 +889,7 @@ public class DuelView extends View {
                     ? duel.isPlayerMonsterFaceDown(i) : duel.isCpuMonsterFaceDown(i));
             String label = monsterRow ? (card == null ? "M" + (i + 1)
                     : hiddenOpponentCard ? "SET" : shortName(card.name, 7))
-                    : "S/T " + (i + 1);
+                    : card == null ? "S/T " + (i + 1) : shortName(card.name, 7);
             canvas.drawText(label, x + 2, y + zoneH * 0.43f, paint);
             if (card != null && !hiddenOpponentCard) {
                 paint.setTextSize(Math.max(7, getWidth() * 0.018f));
