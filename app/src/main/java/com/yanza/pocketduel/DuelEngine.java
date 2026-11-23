@@ -18,6 +18,9 @@ public final class DuelEngine {
     private final List<CardDefinition> playerBanished = new ArrayList<CardDefinition>();
     private final CardDefinition[] playerField = new CardDefinition[5];
     private final CardDefinition[] cpuField = new CardDefinition[5];
+    private final CardDefinition[] playerSpellTrap = new CardDefinition[5];
+    private final boolean[] playerSpellTrapFaceDown = new boolean[5];
+    private final int[] playerSpellTrapSetTurn = {-1, -1, -1, -1, -1};
     private CardDefinition playerPendulumLeft;
     private CardDefinition playerPendulumRight;
     private boolean playerPendulumSummonedThisTurn;
@@ -43,7 +46,7 @@ public final class DuelEngine {
         if (mainDeckIds == null) {
             for (int copy = 0; copy < 3; copy++) {
                 for (CardDefinition card : CardCatalog.all()) {
-                    if (card.kind == CardDefinition.Kind.MONSTER && !isExtraDeckMonster(card)) {
+                    if (card.kind != CardDefinition.Kind.MONSTER || !isExtraDeckMonster(card)) {
                         playerDeck.add(card);
                     }
                 }
@@ -51,7 +54,7 @@ public final class DuelEngine {
         } else {
             for (String id : mainDeckIds) {
                 CardDefinition card = CardCatalog.find(id);
-                if (card != null && card.kind == CardDefinition.Kind.MONSTER && !isExtraDeckMonster(card)) {
+                if (card != null && (card.kind != CardDefinition.Kind.MONSTER || !isExtraDeckMonster(card))) {
                     playerDeck.add(card);
                 }
             }
@@ -101,6 +104,72 @@ public final class DuelEngine {
         return true;
     }
     public CardDefinition[] getPlayerField() { return playerField.clone(); }
+    public CardDefinition[] getPlayerSpellTrap() { return playerSpellTrap.clone(); }
+    public boolean isPlayerSpellTrapFaceDown(int slot) { return slot >= 0 && slot < 5 && playerSpellTrap[slot] != null && playerSpellTrapFaceDown[slot]; }
+    public boolean activateSpellFromHand(int handIndex) {
+        if (!isMainPhase()) return reject("Spell activation requires Main Phase 1 or 2");
+        if (handIndex < 0 || handIndex >= playerHand.size()) return reject("Select a Spell in your hand");
+        CardDefinition card = playerHand.get(handIndex);
+        if (card.kind != CardDefinition.Kind.SPELL) return reject("Select a Spell Card");
+        int slot = firstEmpty(playerSpellTrap);
+        if (slot < 0) return reject("Spell/Trap Zone is full");
+        playerHand.remove(handIndex);
+        if (card.spellTrapType == CardDefinition.SpellTrapType.CONTINUOUS_SPELL) {
+            playerSpellTrap[slot] = card;
+            message = card.name + " activated and remains face-up";
+        } else {
+            String effect = resolveSpellTrapEffect(card);
+            playerGraveyard.add(card);
+            message = card.name + " activated" + (effect.length() == 0 ? "" : " - " + effect);
+        }
+        return true;
+    }
+    public boolean setTrapFromHand(int handIndex) {
+        if (!isMainPhase()) return reject("Trap Set requires Main Phase 1 or 2");
+        if (handIndex < 0 || handIndex >= playerHand.size()) return reject("Select a Trap in your hand");
+        CardDefinition card = playerHand.get(handIndex);
+        if (card.kind != CardDefinition.Kind.TRAP) return reject("Only Trap Cards can be Set");
+        int slot = firstEmpty(playerSpellTrap);
+        if (slot < 0) return reject("Spell/Trap Zone is full");
+        playerHand.remove(handIndex);
+        playerSpellTrap[slot] = card;
+        playerSpellTrapFaceDown[slot] = true;
+        playerSpellTrapSetTurn[slot] = turn;
+        message = card.name + " Set face-down; it cannot activate this turn";
+        return true;
+    }
+    public boolean activateSetTrap(int slot) {
+        if (slot < 0 || slot >= 5 || playerSpellTrap[slot] == null
+                || !playerSpellTrapFaceDown[slot]) return reject("Select a face-down Trap");
+        if (playerSpellTrapSetTurn[slot] >= turn) return reject("A Trap cannot activate on the turn it was Set");
+        CardDefinition card = playerSpellTrap[slot];
+        playerSpellTrapFaceDown[slot] = false;
+        String effect = resolveSpellTrapEffect(card);
+        if (card.spellTrapType == CardDefinition.SpellTrapType.CONTINUOUS_TRAP) {
+            message = card.name + " activated and remains face-up";
+        } else {
+            playerSpellTrap[slot] = null;
+            playerGraveyard.add(card);
+            message = card.name + " activated" + (effect.length() == 0 ? "" : " - " + effect);
+        }
+        return true;
+    }
+    private String resolveSpellTrapEffect(CardDefinition card) {
+        if ("DRAW_TWO".equals(card.effectId)) {
+            int before = playerHand.size(); draw(playerDeck, playerHand, 2);
+            return "draw " + (playerHand.size() - before) + " card(s)";
+        }
+        if ("RECOVER_1000".equals(card.effectId)) {
+            playerLP += 1000; return "recover 1000 LP";
+        }
+        if ("DESTROY_WEAKEST".equals(card.effectId)) {
+            int target = weakestMonster(cpuField);
+            if (target >= 0) { cpuField[target] = null; return "destroyed an opponent monster"; }
+            return "no valid monster to destroy";
+        }
+        if ("NEGATE_NEXT".equals(card.effectId)) return "Counter Trap activated (chain negation pending)";
+        return "";
+    }
     public CardDefinition getPlayerPendulumLeft() { return playerPendulumLeft; }
     public CardDefinition getPlayerPendulumRight() { return playerPendulumRight; }
     public boolean canPlacePendulum(int handIndex) {
