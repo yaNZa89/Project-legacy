@@ -319,15 +319,11 @@ public final class DuelEngine {
                 if (attacker.attack > defenderValue) {
                     playerGraveyard.add(defender);
                     cpuField[defenderSlot] = null;
-                    message = "Face-down monster revealed and destroyed";
+                    message = "Face-down Defense Position monster revealed and destroyed";
                 } else if (attacker.attack < defenderValue) {
-                    playerGraveyard.add(attacker);
-                    playerField[attackerSlot] = null;
-                    message = "Attacker fails to overcome the revealed Defense Position monster";
+                    message = "Defense Position monster revealed; attacker survives";
                 } else {
-                    playerGraveyard.add(attacker);
-                    playerField[attackerSlot] = null;
-                    message = "Defense Position monster survives the equal battle";
+                    message = "Defense Position monster revealed; both survive";
                 }
             } else if (attacker.attack > defenderValue) {
                 cpuLP = Math.max(0, cpuLP - (attacker.attack - defenderValue));
