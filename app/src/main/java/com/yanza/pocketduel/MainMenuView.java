@@ -11,9 +11,10 @@ import android.view.View;
 public final class MainMenuView extends View {
     public interface Listener {
         void onStartDuel(String opponent);
+        void onOpenDeck();
     }
 
-    private enum Screen { MAIN, OPPONENT, DECK, OPTIONS }
+    private enum Screen { MAIN, OPPONENT, OPTIONS }
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Listener listener;
     private final String[] menu = { "DUEL", "DECK", "OPTIONS" };
@@ -33,8 +34,7 @@ public final class MainMenuView extends View {
         if (key == KeyEvent.KEYCODE_2 || key == KeyEvent.KEYCODE_DPAD_UP) {
             selected = Math.max(0, selected - 1);
         } else if (key == KeyEvent.KEYCODE_8 || key == KeyEvent.KEYCODE_DPAD_DOWN) {
-            int count = screen == Screen.MAIN ? menu.length
-                    : screen == Screen.OPPONENT ? opponents.length : 1;
+            int count = screen == Screen.MAIN ? menu.length : opponents.length;
             selected = Math.min(count - 1, selected + 1);
         } else if (key == KeyEvent.KEYCODE_5 || key == KeyEvent.KEYCODE_ENTER
                 || key == KeyEvent.KEYCODE_DPAD_CENTER) {
@@ -59,9 +59,7 @@ public final class MainMenuView extends View {
                 selected = 0;
                 notice = "Choose your AI opponent";
             } else if (selected == 1) {
-                screen = Screen.DECK;
-                selected = 0;
-                notice = "Deck builder is the next implementation step";
+                if (listener != null) listener.onOpenDeck();
             } else {
                 screen = Screen.OPTIONS;
                 selected = 0;
@@ -69,59 +67,45 @@ public final class MainMenuView extends View {
             }
         } else if (screen == Screen.OPPONENT) {
             if (listener != null) listener.onStartDuel(opponents[selected]);
-        } else if (screen == Screen.DECK) {
-            notice = "Deck editing is not connected yet";
         } else {
             notice = "2/8 move | 5 select | # back";
         }
     }
 
-    @Override
-    protected void onDraw(Canvas canvas) {
+    @Override protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-        float w = getWidth();
-        float h = getHeight();
+        float w = getWidth(), h = getHeight();
         canvas.drawColor(0xFF101923);
         paint.setColor(0xFF172B3A);
-        canvas.drawRoundRect(new RectF(w * .06f, h * .08f, w * .94f, h * .92f),
-                22f, 22f, paint);
-
+        canvas.drawRoundRect(new RectF(w*.06f,h*.08f,w*.94f,h*.92f),22,22,paint);
         paint.setTextAlign(Paint.Align.CENTER);
         paint.setColor(0xFFFFD36A);
-        paint.setTextSize(Math.max(24f, w * .085f));
+        paint.setTextSize(Math.max(24f,w*.085f));
         paint.setFakeBoldText(true);
-        canvas.drawText("POCKET DUEL", w / 2f, h * .20f, paint);
+        canvas.drawText("POCKET DUEL",w/2f,h*.20f,paint);
         paint.setFakeBoldText(false);
         paint.setColor(0xFFB8C9D6);
-        paint.setTextSize(Math.max(11f, w * .031f));
-        canvas.drawText("CLASSIC CARD BATTLE", w / 2f, h * .25f, paint);
+        paint.setTextSize(Math.max(11f,w*.031f));
+        canvas.drawText("CLASSIC CARD BATTLE",w/2f,h*.25f,paint);
 
-        String heading = screen == Screen.MAIN ? "MAIN MENU"
-                : screen == Screen.OPPONENT ? "SELECT AI OPPONENT"
-                : screen == Screen.DECK ? "DECK" : "OPTIONS";
+        String heading=screen==Screen.MAIN?"MAIN MENU":screen==Screen.OPPONENT?"SELECT AI OPPONENT":"OPTIONS";
         paint.setColor(0xFFFFFFFF);
-        paint.setTextSize(Math.max(15f, w * .047f));
-        canvas.drawText(heading, w / 2f, h * .37f, paint);
-
-        String[] entries = screen == Screen.MAIN ? menu
-                : screen == Screen.OPPONENT ? opponents
-                : screen == Screen.DECK ? new String[] { "Deck builder coming next" }
-                : new String[] { "Keypad: 2/8 move, 5 select", "Back: #" };
-        float itemH = Math.min(h * .105f, 58f);
-        float startY = h * .43f;
-        for (int i = 0; i < entries.length; i++) {
-            float top = startY + i * (itemH + 10f);
-            RectF rect = new RectF(w * .16f, top, w * .84f, top + itemH);
-            paint.setColor(i == selected ? 0xFFB87832 : 0xFF294354);
-            canvas.drawRoundRect(rect, 12f, 12f, paint);
+        paint.setTextSize(Math.max(15f,w*.047f));
+        canvas.drawText(heading,w/2f,h*.37f,paint);
+        String[] entries=screen==Screen.MAIN?menu:screen==Screen.OPPONENT?opponents:
+                new String[]{"Keypad: 2/8 move, 5 select","Back: #"};
+        float itemH=Math.min(h*.105f,58f), startY=h*.43f;
+        for(int i=0;i<entries.length;i++) {
+            float top=startY+i*(itemH+10f);
+            paint.setColor(i==selected?0xFFB87832:0xFF294354);
+            canvas.drawRoundRect(new RectF(w*.16f,top,w*.84f,top+itemH),12,12,paint);
             paint.setColor(0xFFFFFFFF);
-            paint.setTextSize(Math.max(13f, w * .043f));
-            canvas.drawText(entries[i], w / 2f, top + itemH * .64f, paint);
+            paint.setTextSize(Math.max(13f,w*.043f));
+            canvas.drawText(entries[i],w/2f,top+itemH*.64f,paint);
         }
-
         paint.setColor(0xFFB8C9D6);
-        paint.setTextSize(Math.max(10f, w * .029f));
-        canvas.drawText(notice, w / 2f, h * .84f, paint);
-        canvas.drawText("2/8 NAVIGATE     5 CONFIRM     # BACK", w / 2f, h * .89f, paint);
+        paint.setTextSize(Math.max(10f,w*.029f));
+        canvas.drawText(notice,w/2f,h*.84f,paint);
+        canvas.drawText("2/8 NAVIGATE     5 CONFIRM     # BACK",w/2f,h*.89f,paint);
     }
 }
