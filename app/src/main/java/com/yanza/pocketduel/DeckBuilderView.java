@@ -74,11 +74,12 @@ public final class DeckBuilderView extends View {
           c.summonMethod==CardDefinition.SummonMethod.XYZ ||
           c.summonMethod==CardDefinition.SummonMethod.LINK;
     }
-    private int copies(String id) { int n=0; for(String s:main)if(s.equals(id))n++;return n; }
+    private int copies(String id) { int n=0; for(String s:main)if(s.equals(id))n++; for(String s:extra)if(s.equals(id))n++; return n; }
 
     public boolean handleKey(int k) {
         if(k==KeyEvent.KEYCODE_0 || k==KeyEvent.KEYCODE_BACK) {
-            if(tab==DECK_MENU){tab=CARD_LIST;selected=0;message="Deck: "+activeDeck;}
+            if(detail) { detail=false; message="Back to "+pageName(); }
+            else if(tab==DECK_MENU){tab=CARD_LIST;selected=0;message="Deck: "+activeDeck;}
             else { saveActiveDeck(); if(listener!=null)listener.onBackToMenu(); }
         } else if(tab==DECK_MENU) {
             if(k==KeyEvent.KEYCODE_2||k==KeyEvent.KEYCODE_DPAD_UP)selected=Math.max(0,selected-1);
@@ -99,13 +100,16 @@ public final class DeckBuilderView extends View {
         invalidate(); return true;
     }
 
+    private String pageName() {
+        return tab==CARD_LIST?"TRUNK":tab==MAIN_DECK?"MAIN DECK":"EXTRA DECK";
+    }
     private void changeTab(int d) {
         tab=(tab+d+3)%3;selected=0;scroll=0;gridColumn=0;detail=false;
-        message=tab==CARD_LIST?"Card Trunk":tab==MAIN_DECK?"Main Deck":"Extra Deck";
+        message=pageName();
     }
     private List<CardDefinition> items() {
         List<CardDefinition> out=new ArrayList<CardDefinition>();
-        if(tab==CARD_LIST) { for(CardDefinition c:cards)if(!isExtra(c))out.add(c); }
+        if(tab==CARD_LIST) { out.addAll(cards); }
         else { List<String> ids=tab==MAIN_DECK?main:extra;for(String id:ids){CardDefinition c=CardCatalog.find(id);if(c!=null)out.add(c);} }
         return out;
     }
@@ -131,14 +135,26 @@ public final class DeckBuilderView extends View {
         List<CardDefinition> list=items();
         if(selected>=list.size()){message="No card selected";return;}
         CardDefinition c=list.get(selected);
+        if(!detail) {
+            detail=true;
+            message="5 add/remove   0 back";
+            return;
+        }
+        detail=false;
         if(tab==CARD_LIST) {
-            if(copies(c.id)>=3)message="Maximum 3 copies";
-            else if(main.size()>=60)message="Main Deck full (60)";
-            else {main.add(c.id);saveActiveDeck();message=c.name+" added";}
+            if(copies(c.id)>=3) message="Maximum 3 copies";
+            else if(isExtra(c)) {
+                if(extra.size()>=15) message="Extra Deck full (15)";
+                else { extra.add(c.id);saveActiveDeck();message=c.name+" added to Extra Deck"; }
+            } else if(main.size()>=60) message="Main Deck full (60)";
+            else { main.add(c.id);saveActiveDeck();message=c.name+" added to Main Deck"; }
         } else {
             List<String> target=tab==MAIN_DECK?main:extra;
-            target.remove(c.id);selected=Math.max(0,Math.min(selected,target.size()-1));
-            saveActiveDeck();message=c.name+" removed";
+            if(selected<target.size()) {
+                target.remove(selected);
+                selected=Math.max(0,Math.min(selected,target.size()-1));
+                saveActiveDeck();message=c.name+" removed";
+            }
         }
     }
     private void deckAction() {
@@ -172,10 +188,9 @@ public final class DeckBuilderView extends View {
             footer(c,w,h,"2/8 SELECT   5 CONFIRM   0 BACK");
             return;
         }
-        String[] tabs={"TRUNK","MAIN","EXTRA"};
-        p.setTextSize(Math.max(10,w*.027f));
-        for(int i=0;i<3;i++){float x=w*.035f+i*w*.31f;p.setColor(tab==i?0xFFB87832:0xFF294354);
-            c.drawRoundRect(new RectF(x,h*.15f,x+w*.29f,h*.22f),7,7,p);p.setColor(-1);c.drawText(tabs[i],x+w*.145f,h*.198f,p);}
+        p.setTextAlign(Paint.Align.CENTER);p.setColor(0xFFFFD36A);
+        p.setTextSize(Math.max(15,w*.045f));
+        c.drawText(pageName(),w/2,h*.19f,p);
         p.setTextAlign(Paint.Align.LEFT);p.setColor(0xFFB8C9D6);p.setTextSize(Math.max(10,w*.027f));
         c.drawText(activeDeck+"   Main "+main.size()+"/60   Extra "+extra.size()+"/15",w*.06f,h*.27f,p);
         List<CardDefinition> list=items();
@@ -197,7 +212,7 @@ public final class DeckBuilderView extends View {
             for(int i=0;i<7;i++){int ix=scroll+i;if(ix>=list.size())break;CardDefinition card=list.get(ix);
                 drawRow(c,w,h,i,card.name+(card.kind==CardDefinition.Kind.MONSTER?"  "+card.attack+"/"+card.defense:"  "+card.kind.name()),ix==selected);}
         }
-        footer(c,w,h,"2/8/4/6 CURSOR   1 GRID   3 LIST   * PREV TAB   # NEXT TAB   5 SELECT   7 DECKS   0 BACK");
+        footer(c,w,h,detail?"5 ADD/REMOVE   0 BACK":"2/8/4/6 CURSOR   1 GRID   3 LIST   * PREV   # NEXT   5 DETAIL   7 DECKS   0 BACK");
     }
     private void drawRow(Canvas c,float w,float h,int i,String s,boolean chosen) {
         float top=h*.30f+i*h*.075f;p.setColor(chosen?0xFFB87832:0xFF294354);
@@ -206,11 +221,14 @@ public final class DeckBuilderView extends View {
         c.drawText(s,w/2,top+h*.043f,p);
     }
     private void drawDetail(Canvas c,float w,float h,CardDefinition d) {
-        p.setTextAlign(Paint.Align.CENTER);p.setColor(0xFFFFD36A);p.setTextSize(Math.max(16,w*.05f));c.drawText(d.name,w/2,h*.43f,p);
+        p.setTextAlign(Paint.Align.CENTER);p.setColor(0xFFFFD36A);p.setTextSize(Math.max(16,w*.05f));c.drawText(d.name,w/2,h*.40f,p);
         p.setColor(-1);p.setTextSize(Math.max(12,w*.032f));
-        c.drawText(d.kind==CardDefinition.Kind.MONSTER?"Level "+d.level+"  ATK "+d.attack+"  DEF "+d.defense:d.kind.name(),w/2,h*.53f,p);
-        if(d.monsterType!=null)c.drawText(d.monsterType.name()+" / "+d.attribute.name(),w/2,h*.61f,p);
-        if(d.isPendulumMonster())c.drawText("Pendulum Scale "+d.pendulumScale,w/2,h*.69f,p);
+        c.drawText(d.kind==CardDefinition.Kind.MONSTER?"Level "+d.level+"  ATK "+d.attack+"  DEF "+d.defense:d.kind.name(),w/2,h*.50f,p);
+        if(d.monsterType!=null)c.drawText(d.monsterType.name()+" / "+(d.attribute==null?"":d.attribute.name()),w/2,h*.58f,p);
+        if(d.isPendulumMonster())c.drawText("Pendulum Scale "+d.pendulumScale,w/2,h*.66f,p);
+        if(d.effectId.length()>0)c.drawText("Effect: "+d.effectId,w/2,h*.74f,p);
+        p.setColor(0xFFB8C9D6);p.setTextSize(Math.max(10,w*.026f));
+        c.drawText(tab==CARD_LIST?(isExtra(d)?"5 ADD TO EXTRA DECK":"5 ADD TO MAIN DECK"):"5 REMOVE FROM DECK",w/2,h*.82f,p);
     }
     private void footer(Canvas c,float w,float h,String s) {
         p.setTextAlign(Paint.Align.CENTER);p.setColor(0xFFB8C9D6);p.setTextSize(Math.max(8,w*.021f));c.drawText(message,w/2,h*.88f,p);c.drawText(s,w/2,h*.94f,p);
