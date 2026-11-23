@@ -38,9 +38,9 @@ public class DuelView extends View {
 
     public boolean handleKey(int key) {
         if (detailCard != null) {
-            if (key == KeyEvent.KEYCODE_7) {
+            if (key == KeyEvent.KEYCODE_DPAD_UP) {
                 detailScroll = Math.max(0, detailScroll - 1);
-            } else if (key == KeyEvent.KEYCODE_9) {
+            } else if (key == KeyEvent.KEYCODE_DPAD_DOWN) {
                 detailScroll++;
             } else if (key == KeyEvent.KEYCODE_POUND || key == KeyEvent.KEYCODE_BACK || key == KeyEvent.KEYCODE_DPAD_CENTER
                     || key == KeyEvent.KEYCODE_ENTER) {
@@ -70,11 +70,9 @@ public class DuelView extends View {
         }
 
         if (summonMenu) {
-            if (key == KeyEvent.KEYCODE_4 || key == KeyEvent.KEYCODE_DPAD_LEFT
-                    || key == KeyEvent.KEYCODE_6 || key == KeyEvent.KEYCODE_DPAD_RIGHT) {
+            if (key == KeyEvent.KEYCODE_DPAD_LEFT || key == KeyEvent.KEYCODE_DPAD_RIGHT) {
                 selectedSummonAction = 1 - selectedSummonAction;
-            } else if (key == KeyEvent.KEYCODE_5 || key == KeyEvent.KEYCODE_DPAD_CENTER
-                    || key == KeyEvent.KEYCODE_ENTER) {
+            } else if (key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER) {
                 executeSummonAction();
             } else if (key == KeyEvent.KEYCODE_POUND || key == KeyEvent.KEYCODE_BACK) {
                 summonMenu = false;
@@ -84,9 +82,9 @@ public class DuelView extends View {
         }
 
         if (phaseMenu) {
-            if (key == KeyEvent.KEYCODE_4 || key == KeyEvent.KEYCODE_DPAD_LEFT) {
+            if (key == KeyEvent.KEYCODE_DPAD_LEFT) {
                 selectedPhaseIndex = clamp(selectedPhaseIndex - 1, 0, 5);
-            } else if (key == KeyEvent.KEYCODE_6 || key == KeyEvent.KEYCODE_DPAD_RIGHT) {
+            } else if (key == KeyEvent.KEYCODE_DPAD_RIGHT) {
                 selectedPhaseIndex = clamp(selectedPhaseIndex + 1, 0, 5);
             } else if (key == KeyEvent.KEYCODE_5 || key == KeyEvent.KEYCODE_DPAD_CENTER
                     || key == KeyEvent.KEYCODE_ENTER) {
@@ -111,17 +109,16 @@ public class DuelView extends View {
 
         if (key == KeyEvent.KEYCODE_DPAD_LEFT || key == KeyEvent.KEYCODE_DPAD_RIGHT
                ) {
-            int direction = (key == KeyEvent.KEYCODE_DPAD_LEFT || key == KeyEvent.KEYCODE_4) ? -1 : 1;
+            int direction = key == KeyEvent.KEYCODE_DPAD_LEFT ? -1 : 1;
             navColumn = clamp(navColumn + direction, 0, rowMaxColumn(navRow));
             syncNavigationSelection();
         } else if (key == KeyEvent.KEYCODE_DPAD_UP || key == KeyEvent.KEYCODE_DPAD_DOWN
                ) {
-            int direction = (key == KeyEvent.KEYCODE_DPAD_UP || key == KeyEvent.KEYCODE_2) ? -1 : 1;
+            int direction = key == KeyEvent.KEYCODE_DPAD_UP ? -1 : 1;
             navRow = clamp(navRow + direction, 0, 3);
             navColumn = clamp(navColumn, 0, rowMaxColumn(navRow));
             syncNavigationSelection();
-        } else if (key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER
-                || key == KeyEvent.KEYCODE_5) {
+        } else if (key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER) {
             activateArenaSelection();
         } else if (key == KeyEvent.KEYCODE_POUND || key == KeyEvent.KEYCODE_BACK) {
             phaseMenu = false;
