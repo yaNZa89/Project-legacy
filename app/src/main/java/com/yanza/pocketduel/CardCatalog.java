@@ -59,10 +59,10 @@ public final class CardCatalog {
         addSpell("vitality_charm", "Vitality Charm", CardDefinition.SpellTrapType.NORMAL_SPELL, "RECOVER_1000");
         addSpell("tactical_draw", "Tactical Draw", CardDefinition.SpellTrapType.NORMAL_SPELL, "DRAW_TWO");
         addSpell("guardian_aura", "Guardian Aura", CardDefinition.SpellTrapType.CONTINUOUS_SPELL, "");
+        addSpell("ancient_territory", "Ancient Territory", CardDefinition.SpellTrapType.FIELD_SPELL, "");
         addSpell("quick_burst", "Quick Burst", CardDefinition.SpellTrapType.QUICKPLAY_SPELL, "DESTROY_WEAKEST");
         addTrap("mirror_guard", "Mirror Guard", CardDefinition.SpellTrapType.NORMAL_TRAP, "DESTROY_WEAKEST");
         addTrap("steady_barrier", "Steady Barrier", CardDefinition.SpellTrapType.CONTINUOUS_TRAP, "");
-        addTrap("counter_signal", "Counter Signal", CardDefinition.SpellTrapType.COUNTER_TRAP, "NEGATE_NEXT");
     }
 
     private CardCatalog() { }
