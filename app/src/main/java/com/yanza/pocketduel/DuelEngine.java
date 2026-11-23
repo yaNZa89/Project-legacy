@@ -170,6 +170,10 @@ public final class DuelEngine {
         return hasMonsters(playerField);
     }
 
+    boolean hasCpuMonsters() {
+        return hasMonsters(cpuField);
+    }
+
     public boolean activateSpellFromHand(int handIndex) {
         if (!isMainPhase()) return reject("Spell activation requires a Main Phase");
         if (handIndex < 0 || handIndex >= playerHand.size()) return reject("Select a card in your hand");
