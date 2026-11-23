@@ -78,7 +78,8 @@ public final class DuelEngine {
                 }
             }
         }
-        Collections.reverse(cpuDeck);
+        Collections.shuffle(playerDeck);
+        Collections.shuffle(cpuDeck);
         draw(playerDeck, playerHand, 5);
         draw(cpuDeck, cpuHand, 5);
         phase = Phase.DRAW;
