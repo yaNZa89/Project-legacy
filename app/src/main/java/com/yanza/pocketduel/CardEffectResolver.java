@@ -69,6 +69,13 @@ public final class CardEffectResolver {
                         return "Special Summoned while you control no monsters";
                     }
                 });
+        register("SPECIAL_SUMMON_IF_OPPONENT_HAS_MONSTER",
+                EffectDefinition.Timing.HAND_SPECIAL_SUMMON,
+                "OPPONENT_MONSTER_AND_EMPTY_FIELD", new Operation() {
+                    public String execute(DuelEngine duel, CardDefinition source, int context) {
+                        return "Special Summoned while the opponent controls a monster";
+                    }
+                });
         register("DESTROY_ATTACKER", EffectDefinition.Timing.WHEN_ATTACKS, "DESTROY_ATTACKER",
                 new Operation() {
                     public String execute(DuelEngine duel, CardDefinition source, int context) {
@@ -99,7 +106,11 @@ public final class CardEffectResolver {
         EffectDefinition definition = DEFINITIONS.get(source.effectId);
         if (definition == null || definition.timing != EffectDefinition.Timing.HAND_SPECIAL_SUMMON)
             return false;
-        return "NO_MONSTERS_ON_FIELD".equals(definition.operation) && !duel.hasPlayerMonsters();
+        if (duel.hasPlayerMonsters()) return false;
+        if ("NO_MONSTERS_ON_FIELD".equals(definition.operation)) return true;
+        if ("OPPONENT_MONSTER_AND_EMPTY_FIELD".equals(definition.operation))
+            return duel.hasCpuMonsters();
+        return false;
     }
 
     public static String resolveOnSummon(DuelEngine duel, CardDefinition source) {
