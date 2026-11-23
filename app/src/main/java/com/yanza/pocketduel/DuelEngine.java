@@ -15,6 +15,7 @@ public final class DuelEngine {
     private final List<CardDefinition> playerHand = new ArrayList<CardDefinition>();
     private final List<CardDefinition> cpuHand = new ArrayList<CardDefinition>();
     private final List<CardDefinition> playerGraveyard = new ArrayList<CardDefinition>();
+    private final List<CardDefinition> cpuGraveyard = new ArrayList<CardDefinition>();
     private final List<CardDefinition> playerBanished = new ArrayList<CardDefinition>();
     private final CardDefinition[] playerField = new CardDefinition[5];
     private final CardDefinition[] cpuField = new CardDefinition[5];
@@ -99,6 +100,7 @@ public final class DuelEngine {
     public List<CardDefinition> getPlayerDeck() { return Collections.unmodifiableList(playerDeck); }
     public List<CardDefinition> getPlayerExtraDeck() { return Collections.unmodifiableList(playerExtraDeck); }
     public List<CardDefinition> getPlayerGraveyard() { return Collections.unmodifiableList(playerGraveyard); }
+    public List<CardDefinition> getCpuGraveyard() { return Collections.unmodifiableList(cpuGraveyard); }
     public List<CardDefinition> getPlayerBanished() { return Collections.unmodifiableList(playerBanished); }
     public boolean banishFromGraveyard(int index) {
         if (index < 0 || index >= playerGraveyard.size()) return reject("Select a card in the Graveyard");
@@ -154,7 +156,11 @@ public final class DuelEngine {
     }
     public boolean activateSetTrap(int slot) {
         if (slot < 0 || slot >= 5 || playerSpellTrap[slot] == null
-                || !playerSpellTrapFaceDown[slot]) return reject("Select a face-down Trap");
+                || !playerSpellTrapFaceDown[slot]) return reject("Select a face-down Spell/Trap");
+        CardDefinition selected = playerSpellTrap[slot];
+        if (selected.kind == CardDefinition.Kind.SPELL
+                && selected.spellTrapType != CardDefinition.SpellTrapType.QUICKPLAY_SPELL)
+            return reject("Only a Set Quick-Play Spell can be activated later");
         if (playerSpellTrapSetTurn[slot] >= turn) return reject("A Trap cannot activate on the turn it was Set");
         CardDefinition card = playerSpellTrap[slot];
         playerSpellTrapFaceDown[slot] = false;
@@ -395,6 +401,11 @@ public final class DuelEngine {
             return reject("Choose your monster first");
         if (playerMonsterFaceDown[attackerSlot]) return reject("A face-down monster cannot attack");
         if (playerAttacked[attackerSlot]) return reject("That monster already attacked");
+        if (resolveCpuTrapDuringPlayerAttack(attackerSlot)) {
+            playerAttacked[attackerSlot] = true;
+            checkWinner();
+            return true;
+        }
         if (hasMonsters(cpuField)) {
             if (!validSlot(defenderSlot) || cpuField[defenderSlot] == null)
                 return reject("Choose an opposing monster");
@@ -456,6 +467,28 @@ public final class DuelEngine {
         message = "Your turn " + turn + " - Draw Phase";
     }
 
+    private boolean resolveCpuTrapDuringPlayerAttack(int attackerSlot) {
+        for (int slot = 0; slot < 5; slot++) {
+            CardDefinition trap = cpuSpellTrap[slot];
+            if (trap == null || !cpuSpellTrapFaceDown[slot]
+                    || cpuSpellTrapSetTurn[slot] >= turn) continue;
+            if ("DESTROY_WEAKEST".equals(trap.effectId)) {
+                cpuSpellTrapFaceDown[slot] = false;
+                cpuSpellTrap[slot] = null;
+                cpuGraveyard.add(trap);
+                CardDefinition attacker = playerField[attackerSlot];
+                if (attacker != null) {
+                    playerGraveyard.add(attacker);
+                    playerField[attackerSlot] = null;
+                    playerMonsterFaceDown[attackerSlot] = false;
+                }
+                message = "Opponent activated a Set Trap in response; your attacking monster was destroyed";
+                return true;
+            }
+        }
+        return false;
+    }
+
     private void runCpuSpellTrapActions() {
         for (int i = 0; i < cpuHand.size();) {
             CardDefinition card = cpuHand.get(i);
@@ -465,6 +498,7 @@ public final class DuelEngine {
                     || card.spellTrapType == CardDefinition.SpellTrapType.CONTINUOUS_SPELL
                     || card.spellTrapType == CardDefinition.SpellTrapType.FIELD_SPELL)) {
                 if (card.spellTrapType == CardDefinition.SpellTrapType.FIELD_SPELL) {
+                    if (cpuFieldSpell != null) cpuGraveyard.add(cpuFieldSpell);
                     cpuFieldSpell = card;
                 } else if (card.spellTrapType == CardDefinition.SpellTrapType.CONTINUOUS_SPELL) {
                     int slot = firstEmpty(cpuSpellTrap);
@@ -472,7 +506,7 @@ public final class DuelEngine {
                     cpuSpellTrap[slot] = card;
                 } else {
                     resolveCpuSpellEffect(card);
-                    playerGraveyard.add(card);
+                    cpuGraveyard.add(card);
                 }
                 cpuHand.remove(i);
                 message = "Opponent activated " + card.name;
@@ -511,6 +545,7 @@ public final class DuelEngine {
                 playerSpellTrapFaceDown[slot] = false;
                 playerGraveyard.add(trap);
                 playerSpellTrap[slot] = null;
+                playerGraveyard.add(trap);
                 if (attackerSlot >= 0 && cpuField[attackerSlot] != null) {
                     cpuField[attackerSlot] = null;
                     cpuMonsterFaceDown[attackerSlot] = false;
