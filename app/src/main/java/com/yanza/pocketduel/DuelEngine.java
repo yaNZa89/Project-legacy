@@ -19,6 +19,7 @@ public final class DuelEngine {
     private final CardDefinition[] playerField = new CardDefinition[5];
     private final CardDefinition[] cpuField = new CardDefinition[5];
     private final CardDefinition[] playerSpellTrap = new CardDefinition[5];
+    private CardDefinition playerFieldSpell;
     private final boolean[] playerSpellTrapFaceDown = new boolean[5];
     private final int[] playerSpellTrapSetTurn = {-1, -1, -1, -1, -1};
     private CardDefinition playerPendulumLeft;
@@ -105,6 +106,7 @@ public final class DuelEngine {
     }
     public CardDefinition[] getPlayerField() { return playerField.clone(); }
     public CardDefinition[] getPlayerSpellTrap() { return playerSpellTrap.clone(); }
+    public CardDefinition getPlayerFieldSpell() { return playerFieldSpell; }
     public boolean isPlayerSpellTrapFaceDown(int slot) { return slot >= 0 && slot < 5 && playerSpellTrap[slot] != null && playerSpellTrapFaceDown[slot]; }
     public boolean activateSpellFromHand(int handIndex) {
         if (!isMainPhase()) return reject("Spell activation requires Main Phase 1 or 2");
@@ -114,7 +116,12 @@ public final class DuelEngine {
         int slot = firstEmpty(playerSpellTrap);
         if (slot < 0) return reject("Spell/Trap Zone is full");
         playerHand.remove(handIndex);
-        if (card.spellTrapType == CardDefinition.SpellTrapType.CONTINUOUS_SPELL) {
+        if (card.spellTrapType == CardDefinition.SpellTrapType.FIELD_SPELL) {
+            if (playerFieldSpell != null) playerGraveyard.add(playerFieldSpell);
+            playerFieldSpell = card;
+            message = card.name + " activated in the Field Zone";
+        } else if (card.spellTrapType == CardDefinition.SpellTrapType.CONTINUOUS_SPELL
+                || card.spellTrapType == CardDefinition.SpellTrapType.EQUIP_SPELL) {
             playerSpellTrap[slot] = card;
             message = card.name + " activated and remains face-up";
         } else {
