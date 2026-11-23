@@ -115,6 +115,7 @@ public final class DuelEngine {
         playerHand.remove(handIndex);
         playerField[slot] = card;
         playerMonsterFaceDown[slot] = false;
+        playerAttacked[slot] = false;
         playerNormalSummons++;
         message = card.name + " summoned to slot " + (slot + 1);
         String effectMessage = CardEffectResolver.resolveOnSummon(this, card);
@@ -135,6 +136,7 @@ public final class DuelEngine {
         playerHand.remove(handIndex);
         playerField[slot] = card;
         playerMonsterFaceDown[slot] = true;
+        playerAttacked[slot] = false;
         playerNormalSummons++;
         message = "Monster Set face-down in Defense Position";
         return true;
@@ -161,6 +163,7 @@ public final class DuelEngine {
         playerHand.remove(handIndex);
         playerField[slot] = card;
         playerMonsterFaceDown[slot] = false;
+        playerAttacked[slot] = false;
         message = card.name + " Special Summoned from hand";
         String effectMessage = CardEffectResolver.resolveOnSummon(this, card);
         if (effectMessage.length() > 0) message += " - " + effectMessage;
@@ -224,6 +227,7 @@ public final class DuelEngine {
         playerHand.remove(handIndex);
         playerField[slot] = card;
         playerMonsterFaceDown[slot] = true;
+        playerAttacked[slot] = false;
         playerNormalSummons++;
         message = "Tribute Set face-down in Defense Position (" + required + " tribute)";
         return true;
@@ -252,6 +256,7 @@ public final class DuelEngine {
         playerHand.remove(handIndex);
         playerField[slot] = card;
         playerMonsterFaceDown[slot] = false;
+        playerAttacked[slot] = false;
         playerNormalSummons++;
         message = card.name + " Tribute Summoned (" + required + " tribute)";
         String effectMessage = CardEffectResolver.resolveOnSummon(this, card);
@@ -387,6 +392,8 @@ public final class DuelEngine {
                 int slot = firstEmpty(cpuField);
                 CardDefinition choice = cpuHand.get(strongestIndex);
                 cpuField[slot] = cpuHand.remove(strongestIndex);
+                cpuAttacked[slot] = false;
+                cpuMonsterFaceDown[slot] = false;
                 // Set decisions depend on the board state, never on ATK/DEF thresholds.
                 cpuMonsterFaceDown[slot] = weakestMonster(playerField) >= 0;
                 message = cpuMonsterFaceDown[slot] ? "Opponent Set a monster face-down" : "Opponent Normal Summoned a monster";
@@ -471,6 +478,7 @@ public final class DuelEngine {
             if (candidate.kind == CardDefinition.Kind.MONSTER) {
                 playerField[target] = candidate;
                 playerMonsterFaceDown[target] = false;
+                playerAttacked[target] = false;
                 playerGraveyard.remove(i);
                 return true;
             }
