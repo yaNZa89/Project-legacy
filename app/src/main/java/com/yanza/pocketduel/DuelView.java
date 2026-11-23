@@ -17,7 +17,7 @@ public class DuelView extends View {
     private boolean pauseMenu;
     private int selectedExitOption;
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final DuelEngine duel = new DuelEngine();
+    private final DuelEngine duel;
     private int selectedHand;
     private int selectedMonster;
     private int selectedDeck;
@@ -35,8 +35,14 @@ public class DuelView extends View {
     private String hint = "Keypad: 2/8 row | 4/6 cursor | 5 action | * phases | # back";
 
     public DuelView(Context context, Listener listener) {
+        this(context, listener, null, null);
+    }
+
+    public DuelView(Context context, Listener listener, List<String> mainDeckIds,
+                    List<String> extraDeckIds) {
         super(context);
         this.listener = listener;
+        this.duel = new DuelEngine(mainDeckIds, extraDeckIds);
         setFocusable(true);
     }
 
