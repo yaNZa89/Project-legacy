@@ -30,17 +30,51 @@ public final class DuelEngine {
     private Phase phase = Phase.DRAW;
     private String message = "Duel started";
 
+    /** Default prototype constructor retained for rule tests and fallback callers. */
     public DuelEngine() {
+        this(null, null);
+    }
+
+    /** Starts a duel with the player's saved Main and Extra Deck lists. */
+    public DuelEngine(List<String> mainDeckIds, List<String> extraDeckIds) {
+        if (mainDeckIds == null) {
+            for (int copy = 0; copy < 3; copy++) {
+                for (CardDefinition card : CardCatalog.all()) {
+                    if (card.kind == CardDefinition.Kind.MONSTER && !isExtraDeckMonster(card)) {
+                        playerDeck.add(card);
+                    }
+                }
+            }
+        } else {
+            for (String id : mainDeckIds) {
+                CardDefinition card = CardCatalog.find(id);
+                if (card != null && card.kind == CardDefinition.Kind.MONSTER && !isExtraDeckMonster(card)) {
+                    playerDeck.add(card);
+                }
+            }
+        }
+        if (extraDeckIds == null) {
+            for (int copy = 0; copy < 3; copy++) {
+                for (CardDefinition card : CardCatalog.all()) {
+                    if (card.kind == CardDefinition.Kind.MONSTER && isExtraDeckMonster(card)) {
+                        playerExtraDeck.add(card);
+                    }
+                }
+            }
+        } else {
+            for (String id : extraDeckIds) {
+                CardDefinition card = CardCatalog.find(id);
+                if (card != null && card.kind == CardDefinition.Kind.MONSTER && isExtraDeckMonster(card)) {
+                    playerExtraDeck.add(card);
+                }
+            }
+        }
+        // The CPU keeps its own temporary prototype deck until opponent deck profiles are added.
         for (int copy = 0; copy < 3; copy++) {
             for (CardDefinition card : CardCatalog.all()) {
                 if (card.kind == CardDefinition.Kind.MONSTER) {
-                    if (isExtraDeckMonster(card)) {
-                        playerExtraDeck.add(card);
-                        cpuExtraDeck.add(card);
-                    } else {
-                        playerDeck.add(card);
-                        cpuDeck.add(card);
-                    }
+                    if (isExtraDeckMonster(card)) cpuExtraDeck.add(card);
+                    else cpuDeck.add(card);
                 }
             }
         }
