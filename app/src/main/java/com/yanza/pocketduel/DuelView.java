@@ -1,6 +1,8 @@
 package com.yanza.pocketduel;
 
 import android.content.Context;
+import android.app.AlertDialog;
+import android.widget.EditText;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.RectF;
@@ -30,6 +32,7 @@ public class DuelView extends View {
     private boolean deckBrowser;
     private boolean gridView = true;
     private int browsePile;
+    private String browseSearch = "";
     private int navRow = 3;
     private int navColumn;
     private CardDefinition detailCard;
@@ -129,6 +132,16 @@ public class DuelView extends View {
             return true;
         }
 
+        if (key == KeyEvent.KEYCODE_SOFT_LEFT) {
+            if (!deckBrowser) {
+                browsePile = 0;
+                deckBrowser = true;
+            }
+            showCardSearch();
+            invalidate();
+            return true;
+        }
+
         if (deckBrowser) {
             List<CardDefinition> deck = getBrowseCards();
             if (key == KeyEvent.KEYCODE_STAR) {
@@ -144,6 +157,8 @@ public class DuelView extends View {
                 if (!deck.isEmpty()) openDetails(deck.get(selectedDeck));
             } else if (key == KeyEvent.KEYCODE_POUND || key == KeyEvent.KEYCODE_BACK) {
                 deckBrowser = false;
+                browseSearch = "";
+                selectedDeck = 0;
             } else return false;
             invalidate();
             return true;
@@ -302,12 +317,48 @@ public class DuelView extends View {
     }
 
     private List<CardDefinition> getBrowseCards() {
+        List<CardDefinition> source;
         switch (browsePile) {
-            case 1: return duel.getPlayerExtraDeck();
-            case 2: return duel.getPlayerGraveyard();
-            case 3: return duel.getPlayerBanished();
-            default: return duel.getPlayerDeck();
+            case 1: source = duel.getPlayerExtraDeck(); break;
+            case 2: source = duel.getPlayerGraveyard(); break;
+            case 3: source = duel.getPlayerBanished(); break;
+            default: source = duel.getPlayerDeck(); break;
         }
+        if (browseSearch.length() == 0) return source;
+        List<CardDefinition> matches = new ArrayList<CardDefinition>();
+        String query = browseSearch.toLowerCase(java.util.Locale.ROOT);
+        for (CardDefinition card : source) {
+            if (card.name.toLowerCase(java.util.Locale.ROOT).contains(query)
+                    || card.id.toLowerCase(java.util.Locale.ROOT).contains(query)) {
+                matches.add(card);
+            }
+        }
+        return matches;
+    }
+
+    private void showCardSearch() {
+        final EditText input = new EditText(getContext());
+        input.setSingleLine(true);
+        input.setText(browseSearch);
+        input.setHint("Nama atau ID kartu");
+        new AlertDialog.Builder(getContext())
+                .setTitle("Cari kartu - " + browseTitle())
+                .setView(input)
+                .setPositiveButton("Cari", (dialog, which) -> {
+                    browseSearch = input.getText().toString().trim();
+                    selectedDeck = 0;
+                    hint = browseSearch.length() == 0 ? "Pencarian dibersihkan"
+                            : "Hasil pencarian: " + getBrowseCards().size() + " kartu";
+                    invalidate();
+                })
+                .setNegativeButton("Batal", (dialog, which) -> invalidate())
+                .setNeutralButton("Reset", (dialog, which) -> {
+                    browseSearch = "";
+                    selectedDeck = 0;
+                    hint = "Trunk dikembalikan ke tampilan normal";
+                    invalidate();
+                })
+                .show();
     }
 
     private String browseTitle() {
