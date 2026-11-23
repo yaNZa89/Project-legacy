@@ -371,11 +371,13 @@ public final class DuelEngine {
             reject("Select End Phase first");
             return;
         }
+        // The opponent's turn starts now: Traps Set during our turn become live
+        // before the CPU processes its attacks.
+        clearAttacks(playerTrapSetThisTurn);
         runCpuTurn();
         if (phase == Phase.FINISHED) return;
         turn++;
         playerNormalSummons = 0;
-        clearAttacks(playerTrapSetThisTurn);
         clearAttacks(playerAttacked);
         draw(playerDeck, playerHand, 1);
         phase = Phase.DRAW;
