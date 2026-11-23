@@ -1,6 +1,7 @@
 package com.yanza.pocketduel;
 
 import android.app.Activity;
+import android.widget.Toast;
 import android.os.Bundle;
 import android.view.KeyEvent;
 import android.view.Window;
@@ -53,12 +54,18 @@ public class MainActivity extends Activity {
     }
 
     private void startDuel(String opponent) {
+        java.util.List<String> mainDeck = DeckStorage.loadMainDeck(this);
+        java.util.List<String> extraDeck = DeckStorage.loadExtraDeck(this);
+        if (mainDeck.size() < 40 || mainDeck.size() > 60) {
+            Toast.makeText(this, "Main Deck harus berisi 40-60 kartu. Periksa Deck Builder.", Toast.LENGTH_LONG).show();
+            showDeckBuilder();
+            return;
+        }
         currentOpponent = opponent;
-        // CPU profiles and the selected saved deck are connected in a later rules pass.
         duelView = new DuelView(this, new DuelView.Listener() {
             @Override public void onExitToMenu() { showMainMenu(); }
             @Override public void onDuelAgain() { showOpponentSelection(); }
-        });
+        }, mainDeck, extraDeck);
         mainMenuView = null;
         deckBuilderView = null;
         setContentView(duelView);
