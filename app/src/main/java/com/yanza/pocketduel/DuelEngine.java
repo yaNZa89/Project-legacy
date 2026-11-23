@@ -19,6 +19,10 @@ public final class DuelEngine {
     private final CardDefinition[] playerField = new CardDefinition[5];
     private final CardDefinition[] cpuField = new CardDefinition[5];
     private final CardDefinition[] playerSpellTrap = new CardDefinition[5];
+    private final CardDefinition[] cpuSpellTrap = new CardDefinition[5];
+    private final boolean[] cpuSpellTrapFaceDown = new boolean[5];
+    private final int[] cpuSpellTrapSetTurn = {-1, -1, -1, -1, -1};
+    private CardDefinition cpuFieldSpell;
     private CardDefinition playerFieldSpell;
     private final boolean[] playerSpellTrapFaceDown = new boolean[5];
     private final int[] playerSpellTrapSetTurn = {-1, -1, -1, -1, -1};
@@ -79,10 +83,8 @@ public final class DuelEngine {
         // The CPU keeps its own temporary prototype deck until opponent deck profiles are added.
         for (int copy = 0; copy < 3; copy++) {
             for (CardDefinition card : CardCatalog.all()) {
-                if (card.kind == CardDefinition.Kind.MONSTER) {
-                    if (isExtraDeckMonster(card)) cpuExtraDeck.add(card);
-                    else cpuDeck.add(card);
-                }
+                if (card.kind == CardDefinition.Kind.MONSTER && isExtraDeckMonster(card)) cpuExtraDeck.add(card);
+                else cpuDeck.add(card);
             }
         }
         Collections.shuffle(playerDeck);
@@ -106,6 +108,9 @@ public final class DuelEngine {
     }
     public CardDefinition[] getPlayerField() { return playerField.clone(); }
     public CardDefinition[] getPlayerSpellTrap() { return playerSpellTrap.clone(); }
+    public CardDefinition[] getCpuSpellTrap() { return cpuSpellTrap.clone(); }
+    public CardDefinition getCpuFieldSpell() { return cpuFieldSpell; }
+    public boolean isCpuSpellTrapFaceDown(int slot) { return slot >= 0 && slot < 5 && cpuSpellTrap[slot] != null && cpuSpellTrapFaceDown[slot]; }
     public CardDefinition getPlayerFieldSpell() { return playerFieldSpell; }
     public boolean isPlayerSpellTrapFaceDown(int slot) { return slot >= 0 && slot < 5 && playerSpellTrap[slot] != null && playerSpellTrapFaceDown[slot]; }
     public boolean activateSpellFromHand(int handIndex) {
@@ -451,8 +456,74 @@ public final class DuelEngine {
         message = "Your turn " + turn + " - Draw Phase";
     }
 
+    private void runCpuSpellTrapActions() {
+        for (int i = 0; i < cpuHand.size();) {
+            CardDefinition card = cpuHand.get(i);
+            if (card.kind == CardDefinition.Kind.SPELL
+                    && (card.spellTrapType == CardDefinition.SpellTrapType.NORMAL_SPELL
+                    || card.spellTrapType == CardDefinition.SpellTrapType.QUICKPLAY_SPELL
+                    || card.spellTrapType == CardDefinition.SpellTrapType.CONTINUOUS_SPELL
+                    || card.spellTrapType == CardDefinition.SpellTrapType.FIELD_SPELL)) {
+                if (card.spellTrapType == CardDefinition.SpellTrapType.FIELD_SPELL) {
+                    cpuFieldSpell = card;
+                } else if (card.spellTrapType == CardDefinition.SpellTrapType.CONTINUOUS_SPELL) {
+                    int slot = firstEmpty(cpuSpellTrap);
+                    if (slot < 0) { i++; continue; }
+                    cpuSpellTrap[slot] = card;
+                } else {
+                    resolveCpuSpellEffect(card);
+                    playerGraveyard.add(card);
+                }
+                cpuHand.remove(i);
+                message = "Opponent activated " + card.name;
+            } else if (card.kind == CardDefinition.Kind.TRAP) {
+                int slot = firstEmpty(cpuSpellTrap);
+                if (slot >= 0) {
+                    cpuSpellTrap[slot] = card;
+                    cpuSpellTrapFaceDown[slot] = true;
+                    cpuSpellTrapSetTurn[slot] = turn;
+                    cpuHand.remove(i);
+                    message = "Opponent Set a Spell/Trap card";
+                } else i++;
+            } else i++;
+        }
+    }
+
+    private void resolveCpuSpellEffect(CardDefinition card) {
+        if ("RECOVER_1000".equals(card.effectId)) cpuLP += 1000;
+        else if ("DRAW_TWO".equals(card.effectId)) draw(cpuDeck, cpuHand, 2);
+        else if ("DESTROY_WEAKEST".equals(card.effectId)) {
+            int target = weakestMonster(playerField);
+            if (target >= 0) {
+                playerGraveyard.add(playerField[target]);
+                playerField[target] = null;
+                playerMonsterFaceDown[target] = false;
+            }
+        }
+    }
+
+    private void resolvePlayerTrapDuringCpuAttack(int attackerSlot) {
+        for (int slot = 0; slot < 5; slot++) {
+            CardDefinition trap = playerSpellTrap[slot];
+            if (trap == null || !playerSpellTrapFaceDown[slot]
+                    || playerSpellTrapSetTurn[slot] >= turn) continue;
+            if ("DESTROY_WEAKEST".equals(trap.effectId)) {
+                playerSpellTrapFaceDown[slot] = false;
+                playerGraveyard.add(trap);
+                playerSpellTrap[slot] = null;
+                if (attackerSlot >= 0 && cpuField[attackerSlot] != null) {
+                    cpuField[attackerSlot] = null;
+                    cpuMonsterFaceDown[attackerSlot] = false;
+                }
+                message = trap.name + " activated in response and destroyed the attacking monster";
+                return;
+            }
+        }
+    }
+
     private void runCpuTurn() {
         draw(cpuDeck, cpuHand, 1);
+        runCpuSpellTrapActions();
         if (firstEmpty(cpuField) >= 0 && !cpuHand.isEmpty()) {
             int bestIndex = -1;
             int bestScore = Integer.MIN_VALUE;
@@ -480,6 +551,9 @@ public final class DuelEngine {
         for (int i = 0; i < cpuField.length; i++) {
             CardDefinition attacker = cpuField[i];
             if (attacker == null || cpuAttacked[i] || cpuMonsterFaceDown[i]) continue;
+            resolvePlayerTrapDuringCpuAttack(i);
+            attacker = cpuField[i];
+            if (attacker == null) continue;
             int target = weakestCpuBattleTarget();
             if (target < 0) {
                 playerLP = Math.max(0, playerLP - attacker.attack);
