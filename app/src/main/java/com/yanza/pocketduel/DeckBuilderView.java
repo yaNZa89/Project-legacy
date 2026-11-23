@@ -86,7 +86,12 @@ public final class DeckBuilderView extends View {
     private int copies(String id) { int n=0; for(String s:main)if(s.equals(id))n++; for(String s:extra)if(s.equals(id))n++; return n; }
 
     public boolean handleKey(int k) {
-        if(k==KeyEvent.KEYCODE_BACK) {
+        if(k==KeyEvent.KEYCODE_SOFT_LEFT) {
+            tab=CARD_LIST;selected=0;scroll=0;gridColumn=0;detail=false;
+            openCardSearch();
+        } else if(k==KeyEvent.KEYCODE_SOFT_RIGHT) {
+            tab=DECK_MENU;selected=0;detail=false;message="Manage saved decks";
+        } else if(k==KeyEvent.KEYCODE_BACK) {
             if(detail) {
                 detail=false;
                 message="Back to "+pageName();
@@ -138,6 +143,7 @@ public final class DeckBuilderView extends View {
     }
 
     private void openCardSearch() {
+        tab=CARD_LIST;selected=0;scroll=0;gridColumn=0;detail=false;
         final EditText input=new EditText(getContext());
         input.setSingleLine(true);
         input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
@@ -267,7 +273,7 @@ public final class DeckBuilderView extends View {
             for(int i=0;i<7;i++){int ix=scroll+i;if(ix>=list.size())break;CardDefinition card=list.get(ix);
                 drawRow(c,w,h,i,card.name+(card.kind==CardDefinition.Kind.MONSTER?"  "+card.attack+"/"+card.defense:"  "+card.kind.name()),ix==selected);}
         }
-        footer(c,w,h,detail?"5 ADD/REMOVE   BACK CLOSE":"D-PAD MOVE   1 GRID   3 LIST   * / # TABS   5 DETAIL   0 SEARCH   7 DECKS   BACK RETURN");
+        footer(c,w,h,detail?"5 ADD/REMOVE   BACK CLOSE":"D-PAD MOVE   1 GRID   3 LIST   * / # TABS   5 DETAIL   LEFT SEARCH   RIGHT DECKS   BACK RETURN");
     }
     private void drawRow(Canvas c,float w,float h,int i,String s,boolean chosen) {
         float top=h*.30f+i*h*.075f;p.setColor(chosen?0xFFB87832:0xFF294354);
