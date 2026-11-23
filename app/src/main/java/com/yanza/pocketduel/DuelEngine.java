@@ -17,6 +17,7 @@ public final class DuelEngine {
     private final List<CardDefinition> playerGraveyard = new ArrayList<CardDefinition>();
     private final List<CardDefinition> playerBanished = new ArrayList<CardDefinition>();
     private final CardDefinition[] playerField = new CardDefinition[5];
+    private final CardDefinition[] playerSpellTrap = new CardDefinition[5];
     private final CardDefinition[] cpuField = new CardDefinition[5];
     private final boolean[] playerAttacked = new boolean[5];
     private final boolean[] cpuAttacked = new boolean[5];
@@ -85,6 +86,7 @@ public final class DuelEngine {
         return true;
     }
     public CardDefinition[] getPlayerField() { return playerField.clone(); }
+    public CardDefinition[] getPlayerSpellTrap() { return playerSpellTrap.clone(); }
     public CardDefinition[] getCpuField() { return cpuField.clone(); }
     /** Opponent face-down monsters expose no card identity or stats to the view. */
     public boolean isCpuMonsterFaceDown(int slot) {
@@ -134,6 +136,48 @@ public final class DuelEngine {
         playerMonsterFaceDown[slot] = true;
         playerNormalSummons++;
         message = "Monster Set face-down in Defense Position";
+        return true;
+    }
+
+    public boolean activateSpellFromHand(int handIndex) {
+        if (!isMainPhase()) return reject("Spell activation requires a Main Phase");
+        if (handIndex < 0 || handIndex >= playerHand.size()) return reject("Select a card in your hand");
+        CardDefinition card = playerHand.get(handIndex);
+        if (card.kind != CardDefinition.Kind.SPELL) return reject("Select a Spell Card");
+        int slot = firstEmpty(playerSpellTrap);
+        if (slot < 0) return reject("Your Spell/Trap Zone is full");
+        playerHand.remove(handIndex);
+        playerSpellTrap[slot] = card;
+        if ("DRAW_ONE".equals(card.effectId)) draw(playerDeck, playerHand, 1);
+        else if ("DRAW_TWO".equals(card.effectId)) draw(playerDeck, playerHand, 2);
+        else if ("GAIN_LP".equals(card.effectId)) playerLP = Math.min(12000, playerLP + 500);
+        else if ("REVIVE_MONSTER".equals(card.effectId)) {
+            int target = firstEmpty(playerField);
+            for (int i = playerGraveyard.size() - 1; i >= 0; i--) {
+                CardDefinition candidate = playerGraveyard.get(i);
+                if (candidate.kind == CardDefinition.Kind.MONSTER && target >= 0) {
+                    playerField[target] = candidate;
+                    playerGraveyard.remove(i);
+                    break;
+                }
+            }
+        }
+        playerGraveyard.add(playerSpellTrap[slot]);
+        playerSpellTrap[slot] = null;
+        message = card.name + " activated";
+        return true;
+    }
+
+    public boolean setTrapFromHand(int handIndex) {
+        if (!isMainPhase()) return reject("Trap Set requires a Main Phase");
+        if (handIndex < 0 || handIndex >= playerHand.size()) return reject("Select a card in your hand");
+        CardDefinition card = playerHand.get(handIndex);
+        if (card.kind != CardDefinition.Kind.TRAP) return reject("Select a Trap Card");
+        int slot = firstEmpty(playerSpellTrap);
+        if (slot < 0) return reject("Your Spell/Trap Zone is full");
+        playerHand.remove(handIndex);
+        playerSpellTrap[slot] = card;
+        message = card.name + " Set face-down";
         return true;
     }
 
@@ -328,6 +372,15 @@ public final class DuelEngine {
             CardDefinition attacker = cpuField[i];
             if (attacker == null || cpuAttacked[i] || cpuMonsterFaceDown[i]) continue;
             int target = weakestMonster(playerField);
+            int trapSlot = firstSetTrap("NEGATE_ATTACK", "PREVENT_DAMAGE");
+            if (trapSlot >= 0) {
+                CardDefinition trap = playerSpellTrap[trapSlot];
+                playerSpellTrap[trapSlot] = null;
+                playerGraveyard.add(trap);
+                message = trap.name + " activated; opponent attack stopped";
+                cpuAttacked[i] = true;
+                continue;
+            }
             if (target < 0) {
                 playerLP = Math.max(0, playerLP - attacker.attack);
             } else if (playerMonsterFaceDown[target]) {
@@ -365,6 +418,15 @@ public final class DuelEngine {
     private void draw(List<CardDefinition> deck, List<CardDefinition> hand, int count) {
         for (int i = 0; i < count && !deck.isEmpty() && hand.size() < 7; i++) hand.add(deck.remove(0));
     }
+    private int firstSetTrap(String... effects) {
+        for (int i = 0; i < playerSpellTrap.length; i++) {
+            CardDefinition card = playerSpellTrap[i];
+            if (card == null || card.kind != CardDefinition.Kind.TRAP) continue;
+            for (String effect : effects) if (effect.equals(card.effectId)) return i;
+        }
+        return -1;
+    }
+
     private int firstEmpty(CardDefinition[] field) {
         for (int i = 0; i < field.length; i++) if (field[i] == null) return i;
         return -1;
