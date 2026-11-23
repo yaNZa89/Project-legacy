@@ -273,13 +273,13 @@ public class DuelView extends View {
 
     private int rowMaxColumn(int row) {
         if (row == 3) return Math.max(0, duel.getPlayerHand().size() - 1);
-        return row == 0 || row == 1 ? 6 : row == 2 ? 4 : row == 4 ? 5 : 4;
+        return row == 0 || row == 1 || row == 2 ? 4 : row == 4 ? 5 : 4;
     }
 
     private void syncNavigationSelection() {
         choosingMonster = navRow == 0;
-        if (navRow == 0 && navColumn >= 1 && navColumn <= 5) {
-            selectedMonster = navColumn - 1;
+        if (navRow == 0 && navColumn >= 0 && navColumn < 5) {
+            selectedMonster = navColumn;
         }
         if (navRow == 3) selectedHand = clamp(navColumn, 0,
                 Math.max(0, duel.getPlayerHand().size() - 1));
@@ -305,11 +305,7 @@ public class DuelView extends View {
             return;
         }
         if (navRow == 0) {
-            if (navColumn == 0 || navColumn == 6) {
-                hint = "Pendulum Zone selected - Pendulum placement is not implemented yet";
-                return;
-            }
-            selectedMonster = navColumn - 1;
+            selectedMonster = navColumn;
             if (duel.getPhase() == DuelEngine.Phase.BATTLE) {
                 attackSelected();
             } else {
@@ -321,13 +317,9 @@ public class DuelView extends View {
                 else hint = "Empty Monster Zone " + (selectedMonster + 1);
             }
         } else if (navRow == 1) {
-            if (navColumn == 0 || navColumn == 6) {
-                hint = "Pendulum Zone selected";
-            } else {
-                CardDefinition card = duel.getPlayerSpellTrap()[navColumn - 1];
-                if (card == null) hint = "Empty Spell/Trap Zone " + navColumn;
-                else openDetails(card);
-            }
+            CardDefinition card = duel.getPlayerSpellTrap()[navColumn];
+            if (card == null) hint = "Empty Spell/Trap Zone " + (navColumn + 1);
+            else openDetails(card);
         } else if (navRow == 2) {
             if (navColumn == 0) {
                 hint = "Main Deck is face-down. Its contents cannot be inspected freely.";
@@ -864,15 +856,11 @@ public class DuelView extends View {
     private void drawField(Canvas canvas, CardDefinition[] field, float y, float w,
                            boolean playerSide) {
         float gap = 3;
-        float sideW = w * 0.085f;
-        float start = 7 + sideW + gap;
-        float zoneW = (w - 14 - sideW * 2 - gap * 6) / 5f;
+        float start = 7;
+        float zoneW = (w - 14 - gap * 4) / 5f;
         float zoneH = getHeight() * 0.075f;
         float rowGap = getHeight() * 0.010f;
         float spellY = y + zoneH + rowGap;
-
-        drawPendulumZone(canvas, 7, y, sideW, zoneH * 2 + rowGap, "P-L");
-        drawPendulumZone(canvas, w - 7 - sideW, y, sideW, zoneH * 2 + rowGap, "P-R");
 
         drawZoneRow(canvas, field, start, y, zoneW, zoneH, gap, true, playerSide);
         drawZoneRow(canvas, null, start, spellY, zoneW, zoneH, gap, false, false);
@@ -891,9 +879,8 @@ public class DuelView extends View {
             RectF rect = new RectF(x, y, x + zoneW, y + zoneH);
             CardDefinition card = monsterRow && monsters != null ? monsters[i]
                     : !monsterRow && playerSide ? duel.getPlayerSpellTrap()[i] : null;
-            boolean selected = monsterRow && playerSide && navRow == 0 && navColumn == i + 1;
             boolean rowSelected = playerSide && navRow == (monsterRow ? 0 : 1)
-                    && navColumn == i + 1;
+                    && navColumn == i;
             paint.setColor(rowSelected ? 0xffffc857
                     : card == null ? (monsterRow ? 0xff31495b : 0xff29465a)
                     : 0xffbd9653);
@@ -904,7 +891,8 @@ public class DuelView extends View {
                     ? duel.isPlayerMonsterFaceDown(i) : duel.isCpuMonsterFaceDown(i));
             String label = monsterRow ? (card == null ? "M" + (i + 1)
                     : hiddenOpponentCard ? "SET" : shortName(card.name, 7))
-                    : card == null ? "S/T " + (i + 1) : shortName(card.name, 7);
+                    : card == null ? ((i == 0 || i == 4) ? "P/S-T " : "S/T ") + (i + 1)
+                    : shortName(card.name, 7);
             canvas.drawText(label, x + 2, y + zoneH * 0.43f, paint);
             if (card != null && !hiddenOpponentCard) {
                 paint.setTextSize(Math.max(7, getWidth() * 0.018f));
