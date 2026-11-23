@@ -18,6 +18,9 @@ public final class DuelEngine {
     private final List<CardDefinition> playerBanished = new ArrayList<CardDefinition>();
     private final CardDefinition[] playerField = new CardDefinition[5];
     private final CardDefinition[] cpuField = new CardDefinition[5];
+    private CardDefinition playerPendulumLeft;
+    private CardDefinition playerPendulumRight;
+    private boolean playerPendulumSummonedThisTurn;
     private final boolean[] playerAttacked = new boolean[5];
     private final boolean[] cpuAttacked = new boolean[5];
     private final boolean[] cpuMonsterFaceDown = new boolean[5];
@@ -98,6 +101,60 @@ public final class DuelEngine {
         return true;
     }
     public CardDefinition[] getPlayerField() { return playerField.clone(); }
+    public CardDefinition getPlayerPendulumLeft() { return playerPendulumLeft; }
+    public CardDefinition getPlayerPendulumRight() { return playerPendulumRight; }
+    public boolean canPlacePendulum(int handIndex) {
+        if (!isMainPhase() || handIndex < 0 || handIndex >= playerHand.size()) return false;
+        CardDefinition card = playerHand.get(handIndex);
+        return card.isPendulumMonster()
+                && (playerPendulumLeft == null || playerPendulumRight == null);
+    }
+    public boolean placePendulumFromHand(int handIndex) {
+        if (!isMainPhase()) return reject("Pendulum placement requires a Main Phase");
+        if (handIndex < 0 || handIndex >= playerHand.size()) return reject("Select a Pendulum Monster in your hand");
+        CardDefinition card = playerHand.get(handIndex);
+        if (!card.isPendulumMonster()) return reject("Select a Pendulum Monster");
+        if (playerPendulumLeft == null) playerPendulumLeft = card;
+        else if (playerPendulumRight == null) playerPendulumRight = card;
+        else return reject("Both Pendulum Zones are occupied");
+        playerHand.remove(handIndex);
+        message = card.name + " placed in " + (playerPendulumLeft == card ? "Left" : "Right") + " Pendulum Zone (Scale " + card.pendulumScale + ")";
+        return true;
+    }
+    public boolean canPendulumSummon() {
+        if (!isMainPhase() || playerPendulumSummonedThisTurn
+                || playerPendulumLeft == null || playerPendulumRight == null
+                || playerPendulumLeft.pendulumScale == playerPendulumRight.pendulumScale) return false;
+        int low = Math.min(playerPendulumLeft.pendulumScale, playerPendulumRight.pendulumScale);
+        int high = Math.max(playerPendulumLeft.pendulumScale, playerPendulumRight.pendulumScale);
+        for (CardDefinition card : playerHand)
+            if (card.kind == CardDefinition.Kind.MONSTER && card.level > low && card.level < high) return true;
+        return false;
+    }
+    public boolean pendulumSummonFromHand() {
+        if (!isMainPhase()) return reject("Pendulum Summon requires a Main Phase");
+        if (playerPendulumSummonedThisTurn) return reject("Pendulum Summon already used this turn");
+        if (playerPendulumLeft == null || playerPendulumRight == null)
+            return reject("Place Pendulum Monsters in both Pendulum Zones first");
+        int low = Math.min(playerPendulumLeft.pendulumScale, playerPendulumRight.pendulumScale);
+        int high = Math.max(playerPendulumLeft.pendulumScale, playerPendulumRight.pendulumScale);
+        int summoned = 0;
+        for (int i = 0; i < playerHand.size() && firstEmpty(playerField) >= 0;) {
+            CardDefinition card = playerHand.get(i);
+            if (card.kind == CardDefinition.Kind.MONSTER && card.level > low && card.level < high) {
+                int slot = firstEmpty(playerField);
+                playerField[slot] = card;
+                playerHand.remove(i);
+                summoned++;
+                String effectMessage = CardEffectResolver.resolveOnSummon(this, card);
+                if (effectMessage.length() > 0) message = effectMessage;
+            } else i++;
+        }
+        if (summoned == 0) return reject("No monster in hand has a Level between the Pendulum Scales");
+        playerPendulumSummonedThisTurn = true;
+        message = "Pendulum Summoned " + summoned + " monster(s) from hand";
+        return true;
+    }
     public CardDefinition[] getCpuField() { return cpuField.clone(); }
     /** Opponent face-down monsters expose no card identity or stats to the view. */
     public boolean isCpuMonsterFaceDown(int slot) {
@@ -309,6 +366,7 @@ public final class DuelEngine {
         if (phase == Phase.FINISHED) return;
         turn++;
         playerNormalSummons = 0;
+        playerPendulumSummonedThisTurn = false;
         clearAttacks(playerAttacked);
         draw(playerDeck, playerHand, 1);
         phase = Phase.DRAW;
