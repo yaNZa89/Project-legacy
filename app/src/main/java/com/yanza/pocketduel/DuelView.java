@@ -53,8 +53,10 @@ public class DuelView extends View {
 
         if (deckBrowser) {
             List<CardDefinition> deck = getBrowseCards();
-            if (key == KeyEvent.KEYCODE_DPAD_UP || key == KeyEvent.KEYCODE_DPAD_LEFT
-                   ) {
+            if (key == KeyEvent.KEYCODE_STAR) {
+                gridView = !gridView;
+                hint = gridView ? "Card view: GRID" : "Card view: LIST";
+            } else if (key == KeyEvent.KEYCODE_DPAD_UP || key == KeyEvent.KEYCODE_DPAD_LEFT) {
                 selectedDeck = Math.max(0, selectedDeck - 1);
             } else if (key == KeyEvent.KEYCODE_DPAD_DOWN || key == KeyEvent.KEYCODE_DPAD_RIGHT
                    ) {
