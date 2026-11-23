@@ -87,11 +87,17 @@ public final class DeckBuilderView extends View {
 
     public boolean handleKey(int k) {
         if(k==KeyEvent.KEYCODE_BACK) {
-            openCardSearch();
+            if(detail) {
+                detail=false;
+                message="Back to "+pageName();
+            } else if(tab==DECK_MENU) {
+                tab=CARD_LIST;selected=0;message="Deck: "+activeDeck;
+            } else {
+                saveActiveDeck();
+                if(listener!=null)listener.onBackToMenu();
+            }
         } else if(k==KeyEvent.KEYCODE_0) {
-            if(detail) { detail=false; message="Back to "+pageName(); }
-            else if(tab==DECK_MENU){tab=CARD_LIST;selected=0;message="Deck: "+activeDeck;}
-            else { saveActiveDeck(); if(listener!=null)listener.onBackToMenu(); }
+            openCardSearch();
         } else if(tab==DECK_MENU) {
             if(k==KeyEvent.KEYCODE_DPAD_UP)selected=Math.max(0,selected-1);
             else if(k==KeyEvent.KEYCODE_DPAD_DOWN)selected=Math.min(3,selected+1);
@@ -234,7 +240,7 @@ public final class DeckBuilderView extends View {
         if(tab==DECK_MENU) {
             String[] opts={"NEW DECK","SAVE DECK","LOAD NEXT DECK","DELETE DECK"};
             for(int i=0;i<4;i++)drawRow(c,w,h,i,opts[i],selected==i);
-            footer(c,w,h,"D-PAD SELECT   OK CONFIRM   0 BACK");
+            footer(c,w,h,"D-PAD MOVE   OK SELECT   BACK RETURN");
             return;
         }
         p.setTextAlign(Paint.Align.CENTER);p.setColor(0xFFFFD36A);
@@ -261,7 +267,7 @@ public final class DeckBuilderView extends View {
             for(int i=0;i<7;i++){int ix=scroll+i;if(ix>=list.size())break;CardDefinition card=list.get(ix);
                 drawRow(c,w,h,i,card.name+(card.kind==CardDefinition.Kind.MONSTER?"  "+card.attack+"/"+card.defense:"  "+card.kind.name()),ix==selected);}
         }
-        footer(c,w,h,detail?"5 ADD/REMOVE   0 BACK":"2/8/4/6 CURSOR   1 GRID   3 LIST   * PREV   # NEXT   5 DETAIL   9 SEARCH   7 DECKS   0 BACK");
+        footer(c,w,h,detail?"5 ADD/REMOVE   BACK CLOSE":"D-PAD MOVE   1 GRID   3 LIST   * / # TABS   5 DETAIL   0 SEARCH   7 DECKS   BACK RETURN");
     }
     private void drawRow(Canvas c,float w,float h,int i,String s,boolean chosen) {
         float top=h*.30f+i*h*.075f;p.setColor(chosen?0xFFB87832:0xFF294354);
