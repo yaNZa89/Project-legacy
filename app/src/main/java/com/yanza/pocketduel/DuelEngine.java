@@ -231,6 +231,7 @@ public final class DuelEngine {
             int tributeSlot = weakestMonster(playerField);
             playerGraveyard.add(playerField[tributeSlot]);
             playerMonsterFaceDown[tributeSlot] = false;
+            playerAttacked[tributeSlot] = false;
             playerField[tributeSlot] = null;
         }
         int slot = firstEmpty(playerField);
