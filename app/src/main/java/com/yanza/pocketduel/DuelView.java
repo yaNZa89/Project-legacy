@@ -23,12 +23,13 @@ public class DuelView extends View {
     private int selectedSummonAction;
     private int selectedPhaseIndex;
     private boolean deckBrowser;
+    private boolean gridView = true;
     private int browsePile;
     private int navRow = 3;
     private int navColumn;
     private CardDefinition detailCard;
     private int detailScroll;
-    private String hint = "Keypad: 2/8 row | 4/6 cursor | 5 action | * phases | # back";
+    private String hint = "D-pad: navigate/confirm | * Grid/List | # back";
 
     public DuelView(Context context) {
         super(context);
@@ -42,7 +43,7 @@ public class DuelView extends View {
             } else if (key == KeyEvent.KEYCODE_9) {
                 detailScroll++;
             } else if (key == KeyEvent.KEYCODE_POUND || key == KeyEvent.KEYCODE_BACK || key == KeyEvent.KEYCODE_DPAD_CENTER
-                    || key == KeyEvent.KEYCODE_ENTER || key == KeyEvent.KEYCODE_5) {
+                    || key == KeyEvent.KEYCODE_ENTER) {
                 detailCard = null;
                 detailScroll = 0;
             } else return false;
@@ -53,13 +54,13 @@ public class DuelView extends View {
         if (deckBrowser) {
             List<CardDefinition> deck = getBrowseCards();
             if (key == KeyEvent.KEYCODE_DPAD_UP || key == KeyEvent.KEYCODE_DPAD_LEFT
-                    || key == KeyEvent.KEYCODE_2 || key == KeyEvent.KEYCODE_4) {
+                   ) {
                 selectedDeck = Math.max(0, selectedDeck - 1);
             } else if (key == KeyEvent.KEYCODE_DPAD_DOWN || key == KeyEvent.KEYCODE_DPAD_RIGHT
-                    || key == KeyEvent.KEYCODE_8 || key == KeyEvent.KEYCODE_6) {
+                   ) {
                 selectedDeck = Math.min(Math.max(0, deck.size() - 1), selectedDeck + 1);
             } else if (key == KeyEvent.KEYCODE_DPAD_CENTER
-                    || key == KeyEvent.KEYCODE_ENTER || key == KeyEvent.KEYCODE_5) {
+                    || key == KeyEvent.KEYCODE_ENTER) {
                 if (!deck.isEmpty()) openDetails(deck.get(selectedDeck));
             } else if (key == KeyEvent.KEYCODE_POUND || key == KeyEvent.KEYCODE_BACK) {
                 deckBrowser = false;
@@ -109,12 +110,12 @@ public class DuelView extends View {
         }
 
         if (key == KeyEvent.KEYCODE_DPAD_LEFT || key == KeyEvent.KEYCODE_DPAD_RIGHT
-                || key == KeyEvent.KEYCODE_4 || key == KeyEvent.KEYCODE_6) {
+               ) {
             int direction = (key == KeyEvent.KEYCODE_DPAD_LEFT || key == KeyEvent.KEYCODE_4) ? -1 : 1;
             navColumn = clamp(navColumn + direction, 0, rowMaxColumn(navRow));
             syncNavigationSelection();
         } else if (key == KeyEvent.KEYCODE_DPAD_UP || key == KeyEvent.KEYCODE_DPAD_DOWN
-                || key == KeyEvent.KEYCODE_2 || key == KeyEvent.KEYCODE_8) {
+               ) {
             int direction = (key == KeyEvent.KEYCODE_DPAD_UP || key == KeyEvent.KEYCODE_2) ? -1 : 1;
             navRow = clamp(navRow + direction, 0, 3);
             navColumn = clamp(navColumn, 0, rowMaxColumn(navRow));
@@ -128,8 +129,8 @@ public class DuelView extends View {
             navColumn = 0;
             syncNavigationSelection();
         } else if (key == KeyEvent.KEYCODE_STAR) {
-            phaseMenu = true;
-            selectedPhaseIndex = phaseIndex(duel.getPhase());
+            gridView = !gridView;
+            hint = gridView ? "Card view: GRID" : "Card view: LIST";
         } else return false;
 
         if (detailCard == null && !deckBrowser && !phaseMenu) hint = duel.getMessage();
@@ -305,7 +306,7 @@ public class DuelView extends View {
         paint.setColor(0xfff3f5f7);
         paint.setTextSize(Math.max(10, w * 0.028f));
         canvas.drawText(hint, 14, h - 48, paint);
-        canvas.drawText("2/8 row | 4/6 cursor | 5 inspect | 7/9 text | * phases | # back", 14, h - 20, paint);
+        canvas.drawText("D-pad navigate/confirm | * Grid/List | # back", 14, h - 20, paint);
 
         if (deckBrowser) drawDeckBrowser(canvas, w, h);
         if (phaseMenu) drawPhaseMenu(canvas, w, h);
@@ -335,7 +336,7 @@ public class DuelView extends View {
         }
         paint.setColor(0xffd9eaf4);
         paint.setTextSize(10);
-        canvas.drawText("4/6 choose | 5 confirm | # cancel", w / 2f, top + 94, paint);
+        canvas.drawText("D-pad choose/confirm | # cancel", w / 2f, top + 94, paint);
         paint.setTextAlign(Paint.Align.LEFT);
     }
 
@@ -403,7 +404,7 @@ public class DuelView extends View {
         paint.setTextAlign(Paint.Align.LEFT);
         paint.setColor(0xffd9eaf4);
         paint.setTextSize(Math.max(10, w * 0.028f));
-        canvas.drawText("4/6 move | 5 select | # close", left + 12, top + cellH + 48, paint);
+        canvas.drawText("D-pad move/confirm | # close", left + 12, top + cellH + 48, paint);
     }
 
     private void drawPhaseRibbon(Canvas canvas, float w, float h) {
@@ -546,14 +547,34 @@ public class DuelView extends View {
         paint.setTextSize(17);
         canvas.drawText(browseTitle() + "  (" + deck.size() + " cards)", 25, 92, paint);
         paint.setTextSize(13);
-        int first = Math.max(0, selectedDeck - 7);
-        int last = Math.min(deck.size(), first + 15);
-        for (int i = first; i < last; i++) {
-            paint.setColor(i == selectedDeck ? 0xffffd477 : 0xffe7edf2);
-            canvas.drawText((i + 1) + ". " + deck.get(i).name, 26, 120 + (i - first) * 22, paint);
+        if (gridView) {
+            int columns = 3;
+            float gap = 7;
+            float cellW = (w - 64 - gap * (columns - 1)) / columns;
+            float cellH = 62;
+            int first = Math.max(0, (selectedDeck / 12) * 12);
+            int last = Math.min(deck.size(), first + 12);
+            for (int i = first; i < last; i++) {
+                int local = i - first;
+                int col = local % columns;
+                int row = local / columns;
+                float x = 26 + col * (cellW + gap);
+                float y = 108 + row * (cellH + gap);
+                paint.setColor(i == selectedDeck ? 0xffffd477 : 0xff29465a);
+                canvas.drawRoundRect(new RectF(x, y, x + cellW, y + cellH), 6, 6, paint);
+                paint.setColor(i == selectedDeck ? 0xff172536 : 0xffe7edf2);
+                canvas.drawText((i + 1) + ". " + shortName(deck.get(i).name, 16), x + 5, y + 22, paint);
+            }
+        } else {
+            int first = Math.max(0, selectedDeck - 7);
+            int last = Math.min(deck.size(), first + 15);
+            for (int i = first; i < last; i++) {
+                paint.setColor(i == selectedDeck ? 0xffffd477 : 0xffe7edf2);
+                canvas.drawText((i + 1) + ". " + deck.get(i).name, 26, 120 + (i - first) * 22, paint);
+            }
         }
         paint.setColor(0xffd9eaf4);
-        canvas.drawText("2/8 browse | 5 inspect | # close", 25, h - 108, paint);
+        canvas.drawText("D-pad browse/inspect | * Grid/List | # close", 25, h - 108, paint);
     }
 
     private void drawCardDetails(Canvas canvas, float w, float h) {
@@ -596,7 +617,7 @@ public class DuelView extends View {
         }
         paint.setColor(0xffb9cad5);
         paint.setTextSize(Math.max(10, w * 0.027f));
-        canvas.drawText("7 scroll up | 9 scroll down | 5/# close",
+        canvas.drawText("Up/Down scroll | Center/# close",
                 24, h - 65, paint);
     }
 
