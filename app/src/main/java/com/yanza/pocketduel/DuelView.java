@@ -86,8 +86,7 @@ public class DuelView extends View {
                 selectedPhaseIndex = clamp(selectedPhaseIndex - 1, 0, 5);
             } else if (key == KeyEvent.KEYCODE_DPAD_RIGHT) {
                 selectedPhaseIndex = clamp(selectedPhaseIndex + 1, 0, 5);
-            } else if (key == KeyEvent.KEYCODE_5 || key == KeyEvent.KEYCODE_DPAD_CENTER
-                    || key == KeyEvent.KEYCODE_ENTER) {
+            } else if (key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER) {
                 activateSelectedPhase();
             } else if (key == KeyEvent.KEYCODE_POUND || key == KeyEvent.KEYCODE_BACK
                     || key == KeyEvent.KEYCODE_STAR) {
@@ -98,8 +97,7 @@ public class DuelView extends View {
         }
 
         if (duel.getPhase() == DuelEngine.Phase.FINISHED) {
-            if (key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER
-                    || key == KeyEvent.KEYCODE_5) {
+            if (key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER) {
                 hint = "Duel finished - restart the app for a new duel";
                 invalidate();
                 return true;
@@ -130,7 +128,7 @@ public class DuelView extends View {
             hint = gridView ? "Card view: GRID" : "Card view: LIST";
         } else return false;
 
-        if (detailCard == null && !deckBrowser && !phaseMenu) hint = duel.getMessage();
+        if (detailCard == null && !deckBrowser && !phaseMenu && key != KeyEvent.KEYCODE_STAR) hint = duel.getMessage();
         invalidate();
         return true;
     }
