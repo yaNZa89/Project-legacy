@@ -183,13 +183,11 @@ public final class DuelEngine {
         if (handIndex < 0 || handIndex >= playerHand.size()) return reject("Select a card in your hand");
         CardDefinition card = playerHand.get(handIndex);
         if (card.kind != CardDefinition.Kind.SPELL) return reject("Select a Spell Card");
-        int slot = firstEmpty(playerSpellTrap);
-        if (slot < 0) return reject("Your Spell/Trap Zone is full");
+        // A Normal Spell resolves from the hand and goes to the Graveyard;
+        // it does not occupy a Spell/Trap Zone, even when all five zones are full.
         playerHand.remove(handIndex);
-        playerSpellTrap[slot] = card;
         String resolution = CardEffectResolver.resolveSpell(this, card);
-        playerGraveyard.add(playerSpellTrap[slot]);
-        playerSpellTrap[slot] = null;
+        playerGraveyard.add(card);
         message = card.name + " activated";
         if (resolution.length() > 0) message += " - " + resolution;
         return true;
