@@ -15,6 +15,7 @@ public final class DuelEngine {
     private final List<CardDefinition> playerHand = new ArrayList<CardDefinition>();
     private final List<CardDefinition> cpuHand = new ArrayList<CardDefinition>();
     private final List<CardDefinition> playerGraveyard = new ArrayList<CardDefinition>();
+    private final List<CardDefinition> cpuGraveyard = new ArrayList<CardDefinition>();
     private final List<CardDefinition> playerBanished = new ArrayList<CardDefinition>();
     private final CardDefinition[] playerField = new CardDefinition[5];
     private final CardDefinition[] playerSpellTrap = new CardDefinition[5];
@@ -80,6 +81,7 @@ public final class DuelEngine {
     public List<CardDefinition> getPlayerDeck() { return Collections.unmodifiableList(playerDeck); }
     public List<CardDefinition> getPlayerExtraDeck() { return Collections.unmodifiableList(playerExtraDeck); }
     public List<CardDefinition> getPlayerGraveyard() { return Collections.unmodifiableList(playerGraveyard); }
+    public List<CardDefinition> getCpuGraveyard() { return Collections.unmodifiableList(cpuGraveyard); }
     public List<CardDefinition> getPlayerBanished() { return Collections.unmodifiableList(playerBanished); }
     public boolean banishFromGraveyard(int index) {
         if (index < 0 || index >= playerGraveyard.size()) return reject("Select a card in the Graveyard");
@@ -337,7 +339,7 @@ public final class DuelEngine {
             int defenderValue = wasFaceDown ? defender.defense : defender.attack;
             if (wasFaceDown) {
                 if (attacker.attack > defenderValue) {
-                    playerGraveyard.add(defender);
+                    cpuGraveyard.add(defender);
                     cpuField[defenderSlot] = null;
                     message = "Face-down Defense Position monster revealed and destroyed";
                 } else if (attacker.attack < defenderValue) {
@@ -348,7 +350,7 @@ public final class DuelEngine {
                 }
             } else if (attacker.attack > defenderValue) {
                 cpuLP = Math.max(0, cpuLP - (attacker.attack - defenderValue));
-                playerGraveyard.add(defender);
+                cpuGraveyard.add(defender);
                 cpuField[defenderSlot] = null;
                 message = attacker.name + " wins the battle";
             } else if (attacker.attack < defenderValue) {
@@ -361,6 +363,7 @@ public final class DuelEngine {
                 playerGraveyard.add(attacker);
                 playerField[attackerSlot] = null;
                 playerMonsterFaceDown[attackerSlot] = false;
+                cpuGraveyard.add(defender);
                 cpuField[defenderSlot] = null;
                 cpuMonsterFaceDown[defenderSlot] = false;
                 message = "Both monsters are removed";
@@ -466,7 +469,7 @@ public final class DuelEngine {
                 playerField[target] = null;
             } else if (attacker.attack == playerField[target].attack) {
                 playerGraveyard.add(playerField[target]);
-                playerGraveyard.add(attacker);
+                cpuGraveyard.add(attacker);
                 playerMonsterFaceDown[target] = false;
                 cpuMonsterFaceDown[i] = false;
                 playerField[target] = null;
@@ -475,7 +478,7 @@ public final class DuelEngine {
                 if (!preventBattleDamage) {
                     playerLP = Math.max(0, playerLP - (playerField[target].attack - attacker.attack));
                 }
-                playerGraveyard.add(attacker);
+                cpuGraveyard.add(attacker);
                 cpuField[i] = null;
                 cpuMonsterFaceDown[i] = false;
             }
@@ -523,7 +526,7 @@ public final class DuelEngine {
     String destroyCpuAttackerForEffect(int slot) {
         if (!validSlot(slot) || cpuField[slot] == null) return "no valid attacking monster";
         CardDefinition attacker = cpuField[slot];
-        playerGraveyard.add(attacker);
+        cpuGraveyard.add(attacker);
         cpuField[slot] = null;
         cpuMonsterFaceDown[slot] = false;
         cpuAttacked[slot] = true;
