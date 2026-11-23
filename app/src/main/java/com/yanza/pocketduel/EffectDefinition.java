@@ -3,7 +3,7 @@ package com.yanza.pocketduel;
 /** Declarative effect metadata; the resolver will interpret timing and operation IDs. */
 public final class EffectDefinition {
     public enum Timing {
-        ON_SUMMON, IGNITION, WHEN_ATTACKS, WHEN_DESTROYED, END_PHASE,
+        ON_SUMMON, ON_ACTIVATION, IGNITION, WHEN_ATTACKS, WHEN_DESTROYED, END_PHASE,
         QUICK, CONTINUOUS
     }
 
