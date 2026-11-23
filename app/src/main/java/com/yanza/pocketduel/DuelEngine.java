@@ -347,7 +347,8 @@ public final class DuelEngine {
                     cpuMonsterFaceDown[defenderSlot] = false;
                     message = "Face-down Defense Position monster revealed and destroyed";
                 } else if (attacker.attack < defenderValue) {
-                    message = "Defense Position monster revealed; attacker survives without battle damage";
+                    playerLP = Math.max(0, playerLP - (defenderValue - attacker.attack));
+                    message = "Defense Position monster revealed; attacker survives and you take battle damage";
                 } else {
                     message = "Defense Position monster revealed; both survive";
                 }
@@ -463,7 +464,10 @@ public final class DuelEngine {
                     playerMonsterFaceDown[target] = false;
                     message = "Your face-down monster was revealed and destroyed";
                 } else {
-                    message = "Your face-down monster was revealed and survives without battle damage";
+                    if (attacker.attack < defense) {
+                        cpuLP = Math.max(0, cpuLP - (defense - attacker.attack));
+                    }
+                    message = "Your face-down monster was revealed; battle damage applied if its DEF is higher";
                 }
             } else if (attacker.attack > playerField[target].attack) {
                 if (!preventBattleDamage) {
