@@ -10,6 +10,7 @@ public class MainActivity extends Activity {
     private DuelView duelView;
     private MainMenuView mainMenuView;
     private DeckBuilderView deckBuilderView;
+    private String currentOpponent = "AI Duelist 01";
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -40,8 +41,12 @@ public class MainActivity extends Activity {
     }
 
     private void startDuel(String opponent) {
+        currentOpponent = opponent;
         // CPU profiles and the selected saved deck are connected in a later rules pass.
-        duelView = new DuelView(this);
+        duelView = new DuelView(this, new DuelView.Listener() {
+            @Override public void onExitToMenu() { showMainMenu(); }
+            @Override public void onDuelAgain() { startDuel(currentOpponent); }
+        });
         mainMenuView = null;
         deckBuilderView = null;
         setContentView(duelView);
