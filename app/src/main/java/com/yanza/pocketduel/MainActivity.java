@@ -65,7 +65,7 @@ public class MainActivity extends Activity {
         duelView = new DuelView(this, new DuelView.Listener() {
             @Override public void onExitToMenu() { showMainMenu(); }
             @Override public void onDuelAgain() { showOpponentSelection(); }
-        }, mainDeck, extraDeck);
+        }, mainDeck, extraDeck, opponent);
         mainMenuView = null;
         deckBuilderView = null;
         setContentView(duelView);
