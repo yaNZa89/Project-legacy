@@ -38,9 +38,9 @@ public final class MainMenuView extends View {
     }
 
     public boolean handleKey(int key) {
-        if (key == KeyEvent.KEYCODE_2 || key == KeyEvent.KEYCODE_DPAD_UP) {
+        if (key == KeyEvent.KEYCODE_DPAD_UP) {
             selected = Math.max(0, selected - 1);
-        } else if (key == KeyEvent.KEYCODE_8 || key == KeyEvent.KEYCODE_DPAD_DOWN) {
+        } else if (key == KeyEvent.KEYCODE_DPAD_DOWN) {
             int count = screen == Screen.MAIN ? menu.length : opponents.length;
             selected = Math.min(count - 1, selected + 1);
         } else if (key == KeyEvent.KEYCODE_5 || key == KeyEvent.KEYCODE_ENTER
@@ -75,7 +75,7 @@ public final class MainMenuView extends View {
         } else if (screen == Screen.OPPONENT) {
             if (listener != null) listener.onStartDuel(opponents[selected]);
         } else {
-            notice = "2/8 move | 5 select | # back";
+            notice = "D-pad move | OK select | # back";
         }
     }
 
@@ -113,6 +113,6 @@ public final class MainMenuView extends View {
         paint.setColor(0xFFB8C9D6);
         paint.setTextSize(Math.max(10f,w*.029f));
         canvas.drawText(notice,w/2f,h*.84f,paint);
-        canvas.drawText("2/8 NAVIGATE     5 CONFIRM     # BACK",w/2f,h*.89f,paint);
+        canvas.drawText("D-PAD NAVIGATE     OK CONFIRM     # BACK",w/2f,h*.89f,paint);
     }
 }
