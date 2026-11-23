@@ -240,13 +240,17 @@ public final class DuelEngine {
         if (countMonsters(playerField) < required) return reject("Need " + required + " monster tribute(s)");
         for (int n = 0; n < required; n++) {
             int tributeSlot = weakestMonster(playerField);
-            if (tributeSlot >= 0) playerGraveyard.add(playerField[tributeSlot]);
-            if (tributeSlot >= 0) playerField[tributeSlot] = null;
+            if (tributeSlot >= 0) {
+                playerGraveyard.add(playerField[tributeSlot]);
+                playerField[tributeSlot] = null;
+                playerMonsterFaceDown[tributeSlot] = false;
+            }
         }
         int slot = firstEmpty(playerField);
         if (slot < 0) return reject("No monster area available after Tribute");
         playerHand.remove(handIndex);
         playerField[slot] = card;
+        playerMonsterFaceDown[slot] = false;
         playerNormalSummons++;
         message = card.name + " Tribute Summoned (" + required + " tribute)";
         String effectMessage = CardEffectResolver.resolveOnSummon(this, card);
