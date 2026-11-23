@@ -2,6 +2,7 @@ package com.yanza.pocketduel;
 
 import android.content.Context;
 import android.app.AlertDialog;
+import android.content.SharedPreferences;
 import android.widget.EditText;
 import android.graphics.Canvas;
 import android.graphics.Paint;
@@ -18,6 +19,12 @@ public class DuelView extends View {
     private DuelEngine duel = new DuelEngine();
     private boolean pauseMenu;
     private boolean titleScreen;
+    private boolean deckEditor;
+    private int titleOption;
+    private int editorTab;
+    private int editorCursor;
+    private final List<CardDefinition> mainDeckDraft = new ArrayList<CardDefinition>();
+    private final List<CardDefinition> extraDeckDraft = new ArrayList<CardDefinition>();
     private boolean opponentMenu;
     private int selectedPauseOption;
     private int selectedOpponent;
@@ -45,12 +52,42 @@ public class DuelView extends View {
     }
 
     public boolean handleKey(int key) {
+        if (deckEditor) {
+            if (key == KeyEvent.KEYCODE_DPAD_UP) {
+                editorCursor = Math.max(0, editorCursor - 1);
+            } else if (key == KeyEvent.KEYCODE_DPAD_DOWN) {
+                editorCursor = Math.min(Math.max(0, editorCards().size() - 1), editorCursor + 1);
+            } else if (key == KeyEvent.KEYCODE_DPAD_LEFT || key == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                editorTab = 1 - editorTab;
+                editorCursor = 0;
+            } else if (key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER) {
+                toggleEditorCard();
+            } else if (key == KeyEvent.KEYCODE_STAR) {
+                gridView = !gridView;
+            } else if (key == KeyEvent.KEYCODE_SOFT_RIGHT) {
+                showDeckActions();
+            } else if (key == KeyEvent.KEYCODE_POUND || key == KeyEvent.KEYCODE_BACK) {
+                deckEditor = false;
+                titleScreen = true;
+            } else return false;
+            invalidate();
+            return true;
+        }
         if (titleScreen) {
-            if (key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER) {
-                titleScreen = false;
-                duel = new DuelEngine();
-                resetArenaCursor();
-                hint = duel.getMessage();
+            if (key == KeyEvent.KEYCODE_DPAD_UP || key == KeyEvent.KEYCODE_DPAD_DOWN) {
+                titleOption = 1 - titleOption;
+            } else if (key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER) {
+                if (titleOption == 0) {
+                    titleScreen = false;
+                    duel = new DuelEngine();
+                    resetArenaCursor();
+                    hint = duel.getMessage();
+                } else {
+                    titleScreen = false;
+                    deckEditor = true;
+                    editorTab = 0;
+                    editorCursor = 0;
+                }
             } else if (key == KeyEvent.KEYCODE_BACK || key == KeyEvent.KEYCODE_POUND) {
                 titleScreen = false;
             } else return false;
@@ -446,6 +483,7 @@ public class DuelView extends View {
         if (summonMenu) drawSummonMenu(canvas, w, h);
         if (pauseMenu) drawPauseMenu(canvas, w, h);
         if (opponentMenu) drawOpponentMenu(canvas, w, h);
+        if (deckEditor) drawDeckEditor(canvas, w, h);
         if (titleScreen) drawTitleScreen(canvas, w, h);
     }
 
@@ -517,11 +555,132 @@ public class DuelView extends View {
         paint.setColor(0xffffd477);
         paint.setTextSize(Math.max(25, w * 0.085f));
         canvas.drawText("POCKET DUEL", w / 2f, h * 0.30f, paint);
-        paint.setColor(0xffe7edf2);
-        paint.setTextSize(16);
-        canvas.drawText("Press D-pad center to start a duel", w / 2f, h * 0.48f, paint);
+        String[] options = {"DUEL", "DECK BUILDER"};
+        for (int i = 0; i < options.length; i++) {
+            float top = h * 0.43f + i * 58;
+            paint.setColor(titleOption == i ? 0xffffc857 : 0xff29465a);
+            canvas.drawRoundRect(new RectF(w * 0.18f, top, w * 0.82f, top + 42), 7, 7, paint);
+            paint.setColor(titleOption == i ? 0xff172536 : 0xffe7edf2);
+            paint.setTextSize(16);
+            canvas.drawText(options[i], w / 2f, top + 27, paint);
+        }
         paint.setTextSize(11);
-        canvas.drawText("Deck Builder is the next module to implement", w / 2f, h * 0.54f, paint);
+        paint.setColor(0xffd9eaf4);
+        canvas.drawText("D-pad choose | Center confirm", w / 2f, h * 0.72f, paint);
+        paint.setTextAlign(Paint.Align.LEFT);
+    }
+
+    private List<CardDefinition> editorCards() {
+        List<CardDefinition> cards = new ArrayList<CardDefinition>();
+        for (CardDefinition card : CardCatalog.all()) {
+            boolean extra = card.summonMethod == CardDefinition.SummonMethod.FUSION
+                    || card.summonMethod == CardDefinition.SummonMethod.SYNCHRO
+                    || card.summonMethod == CardDefinition.SummonMethod.XYZ
+                    || card.summonMethod == CardDefinition.SummonMethod.LINK;
+            if (extra == (editorTab == 1)) cards.add(card);
+        }
+        return cards;
+    }
+
+    private List<CardDefinition> editorDeck() {
+        return editorTab == 0 ? mainDeckDraft : extraDeckDraft;
+    }
+
+    private void toggleEditorCard() {
+        List<CardDefinition> cards = editorCards();
+        if (editorCursor < 0 || editorCursor >= cards.size()) return;
+        CardDefinition chosen = cards.get(editorCursor);
+        List<CardDefinition> deck = editorDeck();
+        for (int i = 0; i < deck.size(); i++) {
+            if (deck.get(i).id.equals(chosen.id)) {
+                deck.remove(i);
+                hint = chosen.name + " removed from deck";
+                invalidate();
+                return;
+            }
+        }
+        deck.add(chosen);
+        hint = chosen.name + " added to deck";
+        invalidate();
+    }
+
+    private void showDeckActions() {
+        final String[] actions = {"Save Deck", "Load Deck", "Delete Deck"};
+        new AlertDialog.Builder(getContext()).setTitle("Deck options")
+                .setItems(actions, (dialog, which) -> {
+                    SharedPreferences prefs = getContext().getSharedPreferences("pocket_duel_decks", Context.MODE_PRIVATE);
+                    if (which == 0) {
+                        prefs.edit().putString("main", encodeDeck(mainDeckDraft))
+                                .putString("extra", encodeDeck(extraDeckDraft)).apply();
+                        hint = "Deck saved";
+                    } else if (which == 1) {
+                        mainDeckDraft.clear();
+                        extraDeckDraft.clear();
+                        decodeDeck(prefs.getString("main", ""), mainDeckDraft);
+                        decodeDeck(prefs.getString("extra", ""), extraDeckDraft);
+                        hint = "Deck loaded";
+                    } else {
+                        prefs.edit().remove("main").remove("extra").apply();
+                        mainDeckDraft.clear();
+                        extraDeckDraft.clear();
+                        hint = "Saved deck deleted";
+                    }
+                    invalidate();
+                }).setNegativeButton("Cancel", null).show();
+    }
+
+    private String encodeDeck(List<CardDefinition> cards) {
+        StringBuilder value = new StringBuilder();
+        for (CardDefinition card : cards) {
+            if (value.length() > 0) value.append(",");
+            value.append(card.id);
+        }
+        return value.toString();
+    }
+
+    private void decodeDeck(String value, List<CardDefinition> target) {
+        if (value == null || value.length() == 0) return;
+        String[] ids = value.split(",");
+        for (String id : ids) {
+            CardDefinition card = CardCatalog.find(id);
+            if (card != null) target.add(card);
+        }
+    }
+
+    private void drawDeckEditor(Canvas canvas, float w, float h) {
+        paint.setColor(0xff101b2b);
+        canvas.drawRect(0, 0, w, h, paint);
+        paint.setTextAlign(Paint.Align.CENTER);
+        paint.setColor(0xffffd477);
+        paint.setTextSize(20);
+        canvas.drawText("DECK BUILDER", w / 2f, 32, paint);
+        paint.setTextSize(13);
+        paint.setColor(editorTab == 0 ? 0xffffc857 : 0xffd9eaf4);
+        canvas.drawText("MAIN (" + mainDeckDraft.size() + ")", w * 0.28f, 65, paint);
+        paint.setColor(editorTab == 1 ? 0xffffc857 : 0xffd9eaf4);
+        canvas.drawText("EXTRA (" + extraDeckDraft.size() + ")", w * 0.72f, 65, paint);
+        List<CardDefinition> cards = editorCards();
+        int first = Math.max(0, editorCursor - 7);
+        int last = Math.min(cards.size(), first + 15);
+        for (int i = first; i < last; i++) {
+            CardDefinition card = cards.get(i);
+            boolean selected = i == editorCursor;
+            paint.setColor(selected ? 0xffffc857 : 0xff29465a);
+            float y = 88 + (i - first) * 25;
+            canvas.drawRoundRect(new RectF(12, y, w - 12, y + 22), 4, 4, paint);
+            paint.setColor(selected ? 0xff172536 : 0xffe7edf2);
+            paint.setTextAlign(Paint.Align.LEFT);
+            canvas.drawText(card.name, 20, y + 16, paint);
+            int copies = 0;
+            for (CardDefinition item : editorDeck()) if (item.id.equals(card.id)) copies++;
+            paint.setTextAlign(Paint.Align.RIGHT);
+            canvas.drawText(copies > 0 ? "IN DECK" : "", w - 20, y + 16, paint);
+        }
+        paint.setTextAlign(Paint.Align.CENTER);
+        paint.setColor(0xffd9eaf4);
+        paint.setTextSize(10);
+        canvas.drawText("Up/Down select | Left/Right tab | Center add/remove", w / 2f, h - 54, paint);
+        canvas.drawText("Softkey Right: Save/Load/Delete | # back", w / 2f, h - 34, paint);
         paint.setTextAlign(Paint.Align.LEFT);
     }
 
