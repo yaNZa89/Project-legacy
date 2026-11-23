@@ -39,16 +39,22 @@ public final class DuelEngine {
     private int cpuLP = 8000;
     private int turn = 1;
     private int playerNormalSummons;
+    private final String cpuOpponent;
     private Phase phase = Phase.DRAW;
     private String message = "Duel started";
 
     /** Default prototype constructor retained for rule tests and fallback callers. */
     public DuelEngine() {
-        this(null, null);
+        this(null, null, "AI Duelist 01");
     }
 
     /** Starts a duel with the player's saved Main and Extra Deck lists. */
     public DuelEngine(List<String> mainDeckIds, List<String> extraDeckIds) {
+        this(mainDeckIds, extraDeckIds, "AI Duelist 01");
+    }
+
+    public DuelEngine(List<String> mainDeckIds, List<String> extraDeckIds, String opponent) {
+        cpuOpponent = opponent == null || opponent.length() == 0 ? "AI Duelist 01" : opponent;
         if (mainDeckIds == null) {
             for (int copy = 0; copy < 3; copy++) {
                 for (CardDefinition card : CardCatalog.all()) {
@@ -581,7 +587,8 @@ public final class DuelEngine {
                 cpuField[slot] = choice;
                 // Prefer Set when the card is defensive and the player already controls a monster.
                 cpuMonsterFaceDown[slot] = hasMonsters(playerField)
-                        && choice.defense > choice.attack;
+                        && choice.defense > choice.attack
+                        && !cpuOpponent.endsWith("02");
                 message = cpuMonsterFaceDown[slot]
                         ? "Opponent Set a monster face-down"
                         : "Opponent Normal Summoned a monster";
@@ -629,6 +636,15 @@ public final class DuelEngine {
     private int scoreCpuSummon(CardDefinition candidate) {
         int score = candidate.attack + candidate.defense / 4;
         if (candidate.effectId.length() > 0) score += 350;
+        if (cpuOpponent.endsWith("02")) {
+            // Duelist 02 favors pressure and high-ATK monsters.
+            score += candidate.attack / 2;
+            if (candidate.attack >= candidate.defense) score += 300;
+        } else if (cpuOpponent.endsWith("03")) {
+            // Duelist 03 favors durable monsters and defensive board presence.
+            score += candidate.defense / 2;
+            if (candidate.defense > candidate.attack) score += 350;
+        }
         for (CardDefinition onField : cpuField) {
             if (onField == null) continue;
             if (candidate.monsterType != null && candidate.monsterType == onField.monsterType) score += 500;
