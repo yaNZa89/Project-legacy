@@ -23,6 +23,8 @@ public final class DuelEngine {
     private final boolean[] cpuAttacked = new boolean[5];
     private final boolean[] cpuMonsterFaceDown = new boolean[5];
     private final boolean[] playerMonsterFaceDown = new boolean[5];
+    /** Trap cards cannot be activated during the same turn they were Set. */
+    private final boolean[] playerTrapSetThisTurn = new boolean[5];
 
     private int playerLP = 8000;
     private int cpuLP = 8000;
@@ -202,6 +204,7 @@ public final class DuelEngine {
         if (slot < 0) return reject("Your Spell/Trap Zone is full");
         playerHand.remove(handIndex);
         playerSpellTrap[slot] = card;
+        playerTrapSetThisTurn[slot] = true;
         message = card.name + " Set face-down";
         return true;
     }
@@ -371,6 +374,7 @@ public final class DuelEngine {
         if (phase == Phase.FINISHED) return;
         turn++;
         playerNormalSummons = 0;
+        clearAttacks(playerTrapSetThisTurn);
         clearAttacks(playerAttacked);
         draw(playerDeck, playerHand, 1);
         phase = Phase.DRAW;
@@ -410,6 +414,7 @@ public final class DuelEngine {
                 CardDefinition trap = playerSpellTrap[trapSlot];
                 String resolution = CardEffectResolver.resolveTrapOnAttack(this, trap, i);
                 playerSpellTrap[trapSlot] = null;
+                playerTrapSetThisTurn[trapSlot] = false;
                 playerGraveyard.add(trap);
                 message = trap.name + " activated";
                 if (resolution.length() > 0) message += " - " + resolution;
@@ -512,7 +517,7 @@ public final class DuelEngine {
     private int firstSetTrap(String... effects) {
         for (int i = 0; i < playerSpellTrap.length; i++) {
             CardDefinition card = playerSpellTrap[i];
-            if (card == null || card.kind != CardDefinition.Kind.TRAP) continue;
+            if (card == null || card.kind != CardDefinition.Kind.TRAP || playerTrapSetThisTurn[i]) continue;
             for (String effect : effects) if (effect.equals(card.effectId)) return i;
         }
         return -1;
