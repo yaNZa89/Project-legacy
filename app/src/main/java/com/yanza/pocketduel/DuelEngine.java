@@ -15,9 +15,21 @@ public final class DuelEngine {
     private final List<CardDefinition> playerHand = new ArrayList<CardDefinition>();
     private final List<CardDefinition> cpuHand = new ArrayList<CardDefinition>();
     private final List<CardDefinition> playerGraveyard = new ArrayList<CardDefinition>();
+    private final List<CardDefinition> cpuGraveyard = new ArrayList<CardDefinition>();
     private final List<CardDefinition> playerBanished = new ArrayList<CardDefinition>();
     private final CardDefinition[] playerField = new CardDefinition[5];
     private final CardDefinition[] cpuField = new CardDefinition[5];
+    private final CardDefinition[] playerSpellTrap = new CardDefinition[5];
+    private final CardDefinition[] cpuSpellTrap = new CardDefinition[5];
+    private final boolean[] cpuSpellTrapFaceDown = new boolean[5];
+    private final int[] cpuSpellTrapSetTurn = {-1, -1, -1, -1, -1};
+    private CardDefinition cpuFieldSpell;
+    private CardDefinition playerFieldSpell;
+    private final boolean[] playerSpellTrapFaceDown = new boolean[5];
+    private final int[] playerSpellTrapSetTurn = {-1, -1, -1, -1, -1};
+    private CardDefinition playerPendulumLeft;
+    private CardDefinition playerPendulumRight;
+    private boolean playerPendulumSummonedThisTurn;
     private final boolean[] playerAttacked = new boolean[5];
     private final boolean[] cpuAttacked = new boolean[5];
     private final boolean[] cpuMonsterFaceDown = new boolean[5];
@@ -27,24 +39,63 @@ public final class DuelEngine {
     private int cpuLP = 8000;
     private int turn = 1;
     private int playerNormalSummons;
+    private final String cpuOpponent;
     private Phase phase = Phase.DRAW;
     private String message = "Duel started";
 
+    /** Default prototype constructor retained for rule tests and fallback callers. */
     public DuelEngine() {
-        for (int copy = 0; copy < 3; copy++) {
-            for (CardDefinition card : CardCatalog.all()) {
-                if (card.kind == CardDefinition.Kind.MONSTER) {
-                    if (isExtraDeckMonster(card)) {
-                        playerExtraDeck.add(card);
-                        cpuExtraDeck.add(card);
-                    } else {
+        this(null, null, "AI Duelist 01");
+    }
+
+    /** Starts a duel with the player's saved Main and Extra Deck lists. */
+    public DuelEngine(List<String> mainDeckIds, List<String> extraDeckIds) {
+        this(mainDeckIds, extraDeckIds, "AI Duelist 01");
+    }
+
+    public DuelEngine(List<String> mainDeckIds, List<String> extraDeckIds, String opponent) {
+        cpuOpponent = opponent == null || opponent.length() == 0 ? "AI Duelist 01" : opponent;
+        if (mainDeckIds == null) {
+            for (int copy = 0; copy < 3; copy++) {
+                for (CardDefinition card : CardCatalog.all()) {
+                    if (card.kind != CardDefinition.Kind.MONSTER || !isExtraDeckMonster(card)) {
                         playerDeck.add(card);
-                        cpuDeck.add(card);
                     }
                 }
             }
+        } else {
+            for (String id : mainDeckIds) {
+                CardDefinition card = CardCatalog.find(id);
+                if (card != null && (card.kind != CardDefinition.Kind.MONSTER || !isExtraDeckMonster(card))) {
+                    playerDeck.add(card);
+                }
+            }
         }
-        Collections.reverse(cpuDeck);
+        if (extraDeckIds == null) {
+            for (int copy = 0; copy < 3; copy++) {
+                for (CardDefinition card : CardCatalog.all()) {
+                    if (card.kind == CardDefinition.Kind.MONSTER && isExtraDeckMonster(card)) {
+                        playerExtraDeck.add(card);
+                    }
+                }
+            }
+        } else {
+            for (String id : extraDeckIds) {
+                CardDefinition card = CardCatalog.find(id);
+                if (card != null && card.kind == CardDefinition.Kind.MONSTER && isExtraDeckMonster(card)) {
+                    playerExtraDeck.add(card);
+                }
+            }
+        }
+        // The CPU keeps its own temporary prototype deck until opponent deck profiles are added.
+        for (int copy = 0; copy < 3; copy++) {
+            for (CardDefinition card : CardCatalog.all()) {
+                if (card.kind == CardDefinition.Kind.MONSTER && isExtraDeckMonster(card)) cpuExtraDeck.add(card);
+                else cpuDeck.add(card);
+            }
+        }
+        Collections.shuffle(playerDeck);
+        Collections.shuffle(cpuDeck);
         draw(playerDeck, playerHand, 5);
         draw(cpuDeck, cpuHand, 5);
         phase = Phase.DRAW;
@@ -55,6 +106,7 @@ public final class DuelEngine {
     public List<CardDefinition> getPlayerDeck() { return Collections.unmodifiableList(playerDeck); }
     public List<CardDefinition> getPlayerExtraDeck() { return Collections.unmodifiableList(playerExtraDeck); }
     public List<CardDefinition> getPlayerGraveyard() { return Collections.unmodifiableList(playerGraveyard); }
+    public List<CardDefinition> getCpuGraveyard() { return Collections.unmodifiableList(cpuGraveyard); }
     public List<CardDefinition> getPlayerBanished() { return Collections.unmodifiableList(playerBanished); }
     public boolean banishFromGraveyard(int index) {
         if (index < 0 || index >= playerGraveyard.size()) return reject("Select a card in the Graveyard");
@@ -63,6 +115,146 @@ public final class DuelEngine {
         return true;
     }
     public CardDefinition[] getPlayerField() { return playerField.clone(); }
+    public CardDefinition[] getPlayerSpellTrap() { return playerSpellTrap.clone(); }
+    public CardDefinition[] getCpuSpellTrap() { return cpuSpellTrap.clone(); }
+    public CardDefinition getCpuFieldSpell() { return cpuFieldSpell; }
+    public boolean isCpuSpellTrapFaceDown(int slot) { return slot >= 0 && slot < 5 && cpuSpellTrap[slot] != null && cpuSpellTrapFaceDown[slot]; }
+    public CardDefinition getPlayerFieldSpell() { return playerFieldSpell; }
+    public boolean isPlayerSpellTrapFaceDown(int slot) { return slot >= 0 && slot < 5 && playerSpellTrap[slot] != null && playerSpellTrapFaceDown[slot]; }
+    public boolean activateSpellFromHand(int handIndex) {
+        if (!isMainPhase()) return reject("Spell activation requires Main Phase 1 or 2");
+        if (handIndex < 0 || handIndex >= playerHand.size()) return reject("Select a Spell in your hand");
+        CardDefinition card = playerHand.get(handIndex);
+        if (card.kind != CardDefinition.Kind.SPELL) return reject("Select a Spell Card");
+        if (card.spellTrapType == CardDefinition.SpellTrapType.QUICKPLAY_SPELL && phase != Phase.MAIN1 && phase != Phase.MAIN2)
+            return reject("Quick-Play Spell from hand requires your Main Phase");
+        int slot = firstEmpty(playerSpellTrap);
+        if (card.spellTrapType != CardDefinition.SpellTrapType.FIELD_SPELL && slot < 0) {
+            return reject("Spell/Trap Zone is full");
+        }
+        playerHand.remove(handIndex);
+        if (card.spellTrapType == CardDefinition.SpellTrapType.FIELD_SPELL) {
+            if (playerFieldSpell != null) playerGraveyard.add(playerFieldSpell);
+            playerFieldSpell = card;
+            message = card.name + " activated in the Field Zone";
+        } else if (card.spellTrapType == CardDefinition.SpellTrapType.CONTINUOUS_SPELL
+                || card.spellTrapType == CardDefinition.SpellTrapType.EQUIP_SPELL) {
+            playerSpellTrap[slot] = card;
+            message = card.name + " activated and remains face-up";
+        } else {
+            String effect = resolveSpellTrapEffect(card);
+            playerGraveyard.add(card);
+            message = card.name + " activated" + (effect.length() == 0 ? "" : " - " + effect);
+        }
+        return true;
+    }
+    public boolean setTrapFromHand(int handIndex) {
+        if (!isMainPhase()) return reject("Trap Set requires Main Phase 1 or 2");
+        if (handIndex < 0 || handIndex >= playerHand.size()) return reject("Select a Trap in your hand");
+        CardDefinition card = playerHand.get(handIndex);
+        if (card.kind != CardDefinition.Kind.TRAP) return reject("Only Trap Cards can be Set");
+        int slot = firstEmpty(playerSpellTrap);
+        if (slot < 0) return reject("Spell/Trap Zone is full");
+        playerHand.remove(handIndex);
+        playerSpellTrap[slot] = card;
+        playerSpellTrapFaceDown[slot] = true;
+        playerSpellTrapSetTurn[slot] = turn;
+        message = card.name + " Set face-down; it cannot activate this turn";
+        return true;
+    }
+    public boolean activateSetTrap(int slot) {
+        if (slot < 0 || slot >= 5 || playerSpellTrap[slot] == null
+                || !playerSpellTrapFaceDown[slot]) return reject("Select a face-down Spell/Trap");
+        CardDefinition selected = playerSpellTrap[slot];
+        if (selected.kind == CardDefinition.Kind.SPELL
+                && selected.spellTrapType != CardDefinition.SpellTrapType.QUICKPLAY_SPELL)
+            return reject("Only a Set Quick-Play Spell can be activated later");
+        // A Trap or Set Quick-Play Spell cannot be activated during the same
+        // turn it was Set, including that turn's End Phase.
+        if (playerSpellTrapSetTurn[slot] >= turn)
+            return reject("A Set card cannot activate during the turn it was Set");
+        CardDefinition card = playerSpellTrap[slot];
+        playerSpellTrapFaceDown[slot] = false;
+        String effect = resolveSpellTrapEffect(card);
+        if (card.spellTrapType == CardDefinition.SpellTrapType.CONTINUOUS_TRAP) {
+            message = card.name + " activated and remains face-up";
+        } else {
+            playerSpellTrap[slot] = null;
+            playerGraveyard.add(card);
+            message = card.name + " activated" + (effect.length() == 0 ? "" : " - " + effect);
+        }
+        return true;
+    }
+    private String resolveSpellTrapEffect(CardDefinition card) {
+        if ("DRAW_TWO".equals(card.effectId)) {
+            int before = playerHand.size(); draw(playerDeck, playerHand, 2);
+            return "draw " + (playerHand.size() - before) + " card(s)";
+        }
+        if ("RECOVER_1000".equals(card.effectId)) {
+            playerLP += 1000; return "recover 1000 LP";
+        }
+        if ("DESTROY_WEAKEST".equals(card.effectId)) {
+            int target = weakestMonster(cpuField);
+            if (target >= 0) { cpuField[target] = null; return "destroyed an opponent monster"; }
+            return "no valid monster to destroy";
+        }
+        if ("NEGATE_NEXT".equals(card.effectId)) return "Counter Trap activated (chain negation pending)";
+        return "";
+    }
+    public CardDefinition getPlayerPendulumLeft() { return playerPendulumLeft; }
+    public CardDefinition getPlayerPendulumRight() { return playerPendulumRight; }
+    public boolean canPlacePendulum(int handIndex) {
+        if (!isMainPhase() || handIndex < 0 || handIndex >= playerHand.size()) return false;
+        CardDefinition card = playerHand.get(handIndex);
+        return card.isPendulumMonster()
+                && (playerPendulumLeft == null || playerPendulumRight == null);
+    }
+    public boolean placePendulumFromHand(int handIndex) {
+        if (!isMainPhase()) return reject("Pendulum placement requires a Main Phase");
+        if (handIndex < 0 || handIndex >= playerHand.size()) return reject("Select a Pendulum Monster in your hand");
+        CardDefinition card = playerHand.get(handIndex);
+        if (!card.isPendulumMonster()) return reject("Select a Pendulum Monster");
+        if (playerPendulumLeft == null) playerPendulumLeft = card;
+        else if (playerPendulumRight == null) playerPendulumRight = card;
+        else return reject("Both Pendulum Zones are occupied");
+        playerHand.remove(handIndex);
+        message = card.name + " placed in " + (playerPendulumLeft == card ? "Left" : "Right") + " Pendulum Zone (Scale " + card.pendulumScale + ")";
+        return true;
+    }
+    public boolean canPendulumSummon() {
+        if (!isMainPhase() || playerPendulumSummonedThisTurn
+                || playerPendulumLeft == null || playerPendulumRight == null
+                || playerPendulumLeft.pendulumScale == playerPendulumRight.pendulumScale) return false;
+        int low = Math.min(playerPendulumLeft.pendulumScale, playerPendulumRight.pendulumScale);
+        int high = Math.max(playerPendulumLeft.pendulumScale, playerPendulumRight.pendulumScale);
+        for (CardDefinition card : playerHand)
+            if (card.kind == CardDefinition.Kind.MONSTER && card.level > low && card.level < high) return true;
+        return false;
+    }
+    public boolean pendulumSummonFromHand() {
+        if (!isMainPhase()) return reject("Pendulum Summon requires a Main Phase");
+        if (playerPendulumSummonedThisTurn) return reject("Pendulum Summon already used this turn");
+        if (playerPendulumLeft == null || playerPendulumRight == null)
+            return reject("Place Pendulum Monsters in both Pendulum Zones first");
+        int low = Math.min(playerPendulumLeft.pendulumScale, playerPendulumRight.pendulumScale);
+        int high = Math.max(playerPendulumLeft.pendulumScale, playerPendulumRight.pendulumScale);
+        int summoned = 0;
+        for (int i = 0; i < playerHand.size() && firstEmpty(playerField) >= 0;) {
+            CardDefinition card = playerHand.get(i);
+            if (card.kind == CardDefinition.Kind.MONSTER && card.level > low && card.level < high) {
+                int slot = firstEmpty(playerField);
+                playerField[slot] = card;
+                playerHand.remove(i);
+                summoned++;
+                String effectMessage = CardEffectResolver.resolveOnSummon(this, card);
+                if (effectMessage.length() > 0) message = effectMessage;
+            } else i++;
+        }
+        if (summoned == 0) return reject("No monster in hand has a Level between the Pendulum Scales");
+        playerPendulumSummonedThisTurn = true;
+        message = "Pendulum Summoned " + summoned + " monster(s) from hand";
+        return true;
+    }
     public CardDefinition[] getCpuField() { return cpuField.clone(); }
     /** Opponent face-down monsters expose no card identity or stats to the view. */
     public boolean isCpuMonsterFaceDown(int slot) {
@@ -220,6 +412,11 @@ public final class DuelEngine {
             return reject("Choose your monster first");
         if (playerMonsterFaceDown[attackerSlot]) return reject("A face-down monster cannot attack");
         if (playerAttacked[attackerSlot]) return reject("That monster already attacked");
+        if (resolveCpuTrapDuringPlayerAttack(attackerSlot)) {
+            playerAttacked[attackerSlot] = true;
+            checkWinner();
+            return true;
+        }
         if (hasMonsters(cpuField)) {
             if (!validSlot(defenderSlot) || cpuField[defenderSlot] == null)
                 return reject("Choose an opposing monster");
@@ -234,13 +431,10 @@ public final class DuelEngine {
                     cpuField[defenderSlot] = null;
                     message = "Face-down monster revealed and destroyed";
                 } else if (attacker.attack < defenderValue) {
-                    playerGraveyard.add(attacker);
-                    playerField[attackerSlot] = null;
-                    message = "Attacker fails to overcome the revealed Defense Position monster";
+                    playerLP = Math.max(0, playerLP - (defenderValue - attacker.attack));
+                    message = "Face-down monster revealed; attacker survives and you take battle damage";
                 } else {
-                    playerGraveyard.add(attacker);
-                    playerField[attackerSlot] = null;
-                    message = "Defense Position monster survives the equal battle";
+                    message = "Face-down monster revealed; both monsters survive";
                 }
             } else if (attacker.attack > defenderValue) {
                 cpuLP = Math.max(0, cpuLP - (attacker.attack - defenderValue));
@@ -277,37 +471,136 @@ public final class DuelEngine {
         if (phase == Phase.FINISHED) return;
         turn++;
         playerNormalSummons = 0;
+        playerPendulumSummonedThisTurn = false;
         clearAttacks(playerAttacked);
         draw(playerDeck, playerHand, 1);
         phase = Phase.DRAW;
         message = "Your turn " + turn + " - Draw Phase";
     }
 
+    private boolean resolveCpuTrapDuringPlayerAttack(int attackerSlot) {
+        for (int slot = 0; slot < 5; slot++) {
+            CardDefinition trap = cpuSpellTrap[slot];
+            if (trap == null || !cpuSpellTrapFaceDown[slot]
+                    || cpuSpellTrapSetTurn[slot] >= turn) continue;
+            if ("DESTROY_WEAKEST".equals(trap.effectId)) {
+                cpuSpellTrapFaceDown[slot] = false;
+                cpuSpellTrap[slot] = null;
+                cpuGraveyard.add(trap);
+                CardDefinition attacker = playerField[attackerSlot];
+                if (attacker != null) {
+                    playerGraveyard.add(attacker);
+                    playerField[attackerSlot] = null;
+                    playerMonsterFaceDown[attackerSlot] = false;
+                }
+                message = "Opponent activated a Set Trap in response; your attacking monster was destroyed";
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void runCpuSpellTrapActions() {
+        for (int i = 0; i < cpuHand.size();) {
+            CardDefinition card = cpuHand.get(i);
+            if (card.kind == CardDefinition.Kind.SPELL
+                    && (card.spellTrapType == CardDefinition.SpellTrapType.NORMAL_SPELL
+                    || card.spellTrapType == CardDefinition.SpellTrapType.QUICKPLAY_SPELL
+                    || card.spellTrapType == CardDefinition.SpellTrapType.CONTINUOUS_SPELL
+                    || card.spellTrapType == CardDefinition.SpellTrapType.FIELD_SPELL)) {
+                if (card.spellTrapType == CardDefinition.SpellTrapType.FIELD_SPELL) {
+                    if (cpuFieldSpell != null) cpuGraveyard.add(cpuFieldSpell);
+                    cpuFieldSpell = card;
+                } else if (card.spellTrapType == CardDefinition.SpellTrapType.CONTINUOUS_SPELL) {
+                    int slot = firstEmpty(cpuSpellTrap);
+                    if (slot < 0) { i++; continue; }
+                    cpuSpellTrap[slot] = card;
+                } else {
+                    resolveCpuSpellEffect(card);
+                    cpuGraveyard.add(card);
+                }
+                cpuHand.remove(i);
+                message = "Opponent activated " + card.name;
+            } else if (card.kind == CardDefinition.Kind.TRAP) {
+                int slot = firstEmpty(cpuSpellTrap);
+                if (slot >= 0) {
+                    cpuSpellTrap[slot] = card;
+                    cpuSpellTrapFaceDown[slot] = true;
+                    cpuSpellTrapSetTurn[slot] = turn;
+                    cpuHand.remove(i);
+                    message = "Opponent Set a Spell/Trap card";
+                } else i++;
+            } else i++;
+        }
+    }
+
+    private void resolveCpuSpellEffect(CardDefinition card) {
+        if ("RECOVER_1000".equals(card.effectId)) cpuLP += 1000;
+        else if ("DRAW_TWO".equals(card.effectId)) draw(cpuDeck, cpuHand, 2);
+        else if ("DESTROY_WEAKEST".equals(card.effectId)) {
+            int target = weakestMonster(playerField);
+            if (target >= 0) {
+                playerGraveyard.add(playerField[target]);
+                playerField[target] = null;
+                playerMonsterFaceDown[target] = false;
+            }
+        }
+    }
+
+    private void resolvePlayerTrapDuringCpuAttack(int attackerSlot) {
+        for (int slot = 0; slot < 5; slot++) {
+            CardDefinition trap = playerSpellTrap[slot];
+            if (trap == null || !playerSpellTrapFaceDown[slot]
+                    || (playerSpellTrapSetTurn[slot] >= turn && phase != Phase.END)) continue;
+            if ("DESTROY_WEAKEST".equals(trap.effectId)) {
+                playerSpellTrapFaceDown[slot] = false;
+                playerGraveyard.add(trap);
+                playerSpellTrap[slot] = null;
+                if (attackerSlot >= 0 && cpuField[attackerSlot] != null) {
+                    cpuField[attackerSlot] = null;
+                    cpuMonsterFaceDown[attackerSlot] = false;
+                }
+                message = trap.name + " activated in response and destroyed the attacking monster";
+                return;
+            }
+        }
+    }
+
     private void runCpuTurn() {
         draw(cpuDeck, cpuHand, 1);
+        runCpuSpellTrapActions();
         if (firstEmpty(cpuField) >= 0 && !cpuHand.isEmpty()) {
-            int strongestIndex = -1;
-            int strongestAtk = -1;
+            int bestIndex = -1;
+            int bestScore = Integer.MIN_VALUE;
             for (int i = 0; i < cpuHand.size(); i++) {
-                CardDefinition c = cpuHand.get(i);
-                if (c.level < 5 && c.attack > strongestAtk) {
-                    strongestAtk = c.attack;
-                    strongestIndex = i;
+                CardDefinition candidate = cpuHand.get(i);
+                if (candidate.level >= 5) continue;
+                int score = scoreCpuSummon(candidate);
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestIndex = i;
                 }
             }
-            if (strongestIndex >= 0) {
+            if (bestIndex >= 0) {
                 int slot = firstEmpty(cpuField);
-                CardDefinition choice = cpuHand.get(strongestIndex);
-                cpuField[slot] = cpuHand.remove(strongestIndex);
-                // Set decisions depend on the board state, never on ATK/DEF thresholds.
-                cpuMonsterFaceDown[slot] = weakestMonster(playerField) >= 0;
-                message = cpuMonsterFaceDown[slot] ? "Opponent Set a monster face-down" : "Opponent Normal Summoned a monster";
+                CardDefinition choice = cpuHand.remove(bestIndex);
+                cpuField[slot] = choice;
+                // Prefer Set when the card is defensive and the player already controls a monster.
+                cpuMonsterFaceDown[slot] = hasMonsters(playerField)
+                        && choice.defense > choice.attack
+                        && !cpuOpponent.endsWith("02");
+                message = cpuMonsterFaceDown[slot]
+                        ? "Opponent Set a monster face-down"
+                        : "Opponent Normal Summoned a monster";
             }
         }
         for (int i = 0; i < cpuField.length; i++) {
             CardDefinition attacker = cpuField[i];
             if (attacker == null || cpuAttacked[i] || cpuMonsterFaceDown[i]) continue;
-            int target = weakestMonster(playerField);
+            resolvePlayerTrapDuringCpuAttack(i);
+            attacker = cpuField[i];
+            if (attacker == null) continue;
+            int target = weakestCpuBattleTarget();
             if (target < 0) {
                 playerLP = Math.max(0, playerLP - attacker.attack);
             } else if (playerMonsterFaceDown[target]) {
@@ -316,8 +609,11 @@ public final class DuelEngine {
                 if (attacker.attack > defense) {
                     playerField[target] = null;
                     message = "Your face-down monster was revealed and destroyed";
+                } else if (attacker.attack < defense) {
+                    cpuLP = Math.max(0, cpuLP - (defense - attacker.attack));
+                    message = "Your face-down monster survives; opponent takes battle damage";
                 } else {
-                    message = "Your face-down monster was revealed and survives";
+                    message = "Your face-down monster was revealed; both monsters survive";
                 }
             } else if (attacker.attack > playerField[target].attack) {
                 playerLP = Math.max(0, playerLP - (attacker.attack - playerField[target].attack));
@@ -334,6 +630,43 @@ public final class DuelEngine {
             if (phase == Phase.FINISHED) return;
         }
         clearAttacks(cpuAttacked);
+    }
+
+    /** Scores available low-level monsters using board synergy before raw ATK. */
+    private int scoreCpuSummon(CardDefinition candidate) {
+        int score = candidate.attack + candidate.defense / 4;
+        if (candidate.effectId.length() > 0) score += 350;
+        if (cpuOpponent.endsWith("02")) {
+            // Duelist 02 favors pressure and high-ATK monsters.
+            score += candidate.attack / 2;
+            if (candidate.attack >= candidate.defense) score += 300;
+        } else if (cpuOpponent.endsWith("03")) {
+            // Duelist 03 favors durable monsters and defensive board presence.
+            score += candidate.defense / 2;
+            if (candidate.defense > candidate.attack) score += 350;
+        }
+        for (CardDefinition onField : cpuField) {
+            if (onField == null) continue;
+            if (candidate.monsterType != null && candidate.monsterType == onField.monsterType) score += 500;
+            if (candidate.attribute != null && candidate.attribute == onField.attribute) score += 200;
+        }
+        return score;
+    }
+
+    /** Face-down monsters are evaluated by DEF; face-up monsters by ATK. */
+    private int weakestCpuBattleTarget() {
+        int slot = -1;
+        int weakestValue = Integer.MAX_VALUE;
+        for (int i = 0; i < playerField.length; i++) {
+            CardDefinition target = playerField[i];
+            if (target == null) continue;
+            int value = playerMonsterFaceDown[i] ? target.defense : target.attack;
+            if (value < weakestValue) {
+                weakestValue = value;
+                slot = i;
+            }
+        }
+        return slot;
     }
 
     boolean drawOneForEffect() {

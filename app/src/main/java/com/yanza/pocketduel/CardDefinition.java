@@ -13,6 +13,7 @@ public final class CardDefinition {
         PSYCHIC, ZOMBIE, DIVINE_BEAST, ILLUSION, OTHER
     }
     public enum Attribute { DARK, LIGHT, EARTH, WATER, FIRE, WIND, DIVINE }
+    public enum SpellTrapType { NORMAL_SPELL, QUICKPLAY_SPELL, CONTINUOUS_SPELL, EQUIP_SPELL, FIELD_SPELL, RITUAL_SPELL, NORMAL_TRAP, CONTINUOUS_TRAP, COUNTER_TRAP }
 
     public final String id;
     public final String name;
@@ -24,17 +25,25 @@ public final class CardDefinition {
     public final int attack;
     public final int defense;
     public final int pendulumScale;
+    public final SpellTrapType spellTrapType;
     public final String effectId;
 
     /** Backward-compatible constructor for older prototype callers. */
     public CardDefinition(String id, String name, Kind kind, SummonMethod summonMethod,
                           int level, int attack, int defense, String effectId) {
-        this(id, name, kind, summonMethod, null, null, level, attack, defense, -1, effectId);
+        this(id, name, kind, summonMethod, null, null, level, attack, defense, -1, null, effectId);
     }
 
     public CardDefinition(String id, String name, Kind kind, SummonMethod summonMethod,
                           MonsterType monsterType, Attribute attribute, int level,
                           int attack, int defense, int pendulumScale, String effectId) {
+        this(id, name, kind, summonMethod, monsterType, attribute, level, attack, defense, pendulumScale, null, effectId);
+    }
+
+    public CardDefinition(String id, String name, Kind kind, SummonMethod summonMethod,
+                          MonsterType monsterType, Attribute attribute, int level,
+                          int attack, int defense, int pendulumScale,
+                          SpellTrapType spellTrapType, String effectId) {
         this.id = id;
         this.name = name;
         this.kind = kind;
@@ -45,6 +54,7 @@ public final class CardDefinition {
         this.attack = attack;
         this.defense = defense;
         this.pendulumScale = pendulumScale;
+        this.spellTrapType = spellTrapType;
         this.effectId = effectId == null ? "" : effectId;
     }
 

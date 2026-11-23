@@ -55,6 +55,14 @@ public final class CardCatalog {
         addPendulum("scale_terra_golem", "Scale Terra Golem", CardDefinition.MonsterType.ROCK, CardDefinition.Attribute.EARTH, 5, 1800, 2000, 8);
         addPendulum("scale_dusk_dragon", "Scale Dusk Dragon", CardDefinition.MonsterType.DRAGON, CardDefinition.Attribute.DARK, 6, 2100, 1700, 3);
         addPendulum("scale_radiant_fairy", "Scale Radiant Fairy", CardDefinition.MonsterType.FAIRY, CardDefinition.Attribute.LIGHT, 2, 800, 1500, 6);
+
+        addSpell("vitality_charm", "Vitality Charm", CardDefinition.SpellTrapType.NORMAL_SPELL, "RECOVER_1000");
+        addSpell("tactical_draw", "Tactical Draw", CardDefinition.SpellTrapType.NORMAL_SPELL, "DRAW_TWO");
+        addSpell("guardian_aura", "Guardian Aura", CardDefinition.SpellTrapType.CONTINUOUS_SPELL, "");
+        addSpell("ancient_territory", "Ancient Territory", CardDefinition.SpellTrapType.FIELD_SPELL, "");
+        addSpell("quick_burst", "Quick Burst", CardDefinition.SpellTrapType.QUICKPLAY_SPELL, "DESTROY_WEAKEST");
+        addTrap("mirror_guard", "Mirror Guard", CardDefinition.SpellTrapType.NORMAL_TRAP, "DESTROY_WEAKEST");
+        addTrap("steady_barrier", "Steady Barrier", CardDefinition.SpellTrapType.CONTINUOUS_TRAP, "");
     }
 
     private CardCatalog() { }
@@ -71,6 +79,17 @@ public final class CardCatalog {
                                     int def, int scale) {
         CARDS.add(new CardDefinition(id, name, CardDefinition.Kind.MONSTER,
                 CardDefinition.SummonMethod.PENDULUM, type, attribute, level, atk, def, scale, ""));
+    }
+
+
+    private static void addSpell(String id, String name, CardDefinition.SpellTrapType type, String effect) {
+        CARDS.add(new CardDefinition(id, name, CardDefinition.Kind.SPELL, CardDefinition.SummonMethod.SPECIAL,
+                null, null, 0, 0, 0, -1, type, effect));
+    }
+
+    private static void addTrap(String id, String name, CardDefinition.SpellTrapType type, String effect) {
+        CARDS.add(new CardDefinition(id, name, CardDefinition.Kind.TRAP, CardDefinition.SummonMethod.SPECIAL,
+                null, null, 0, 0, 0, -1, type, effect));
     }
 
     public static List<CardDefinition> all() { return Collections.unmodifiableList(CARDS); }
