@@ -271,6 +271,7 @@ public class DuelView extends View {
     }
 
     private int rowMaxColumn(int row) {
+        if (row == 3) return Math.max(0, duel.getPlayerHand().size() - 1);
         return row == 0 || row == 1 ? 6 : row == 2 ? 4 : row == 4 ? 5 : 4;
     }
 
@@ -948,8 +949,12 @@ public class DuelView extends View {
     private void drawHand(Canvas canvas, float w, float h) {
         List<CardDefinition> hand = duel.getPlayerHand();
         float cardW = (w - 28) / 3.1f, cardH = h * 0.105f;
-        for (int i = 0; i < hand.size() && i < 5; i++) {
-            float x = 7 + i * (w - 14 - cardW) / 4f;
+        int selectedIndex = clamp(navColumn, 0, Math.max(0, hand.size() - 1));
+        int firstVisible = Math.max(0, Math.min(selectedIndex - 2, hand.size() - 5));
+        int lastVisible = Math.min(hand.size(), firstVisible + 5);
+        for (int i = firstVisible; i < lastVisible; i++) {
+            int visibleIndex = i - firstVisible;
+            float x = 7 + visibleIndex * (w - 14 - cardW) / 4f;
             RectF rect = new RectF(x, h * 0.715f, x + cardW, h * 0.715f + cardH);
             boolean selected = navRow == 3 && navColumn == i;
             paint.setColor(selected ? 0xffffc857 : 0xff52758b);
