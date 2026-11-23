@@ -56,6 +56,22 @@ public class DuelView extends View {
             else return true;
             invalidate(); return true;
         }
+        if (key == KeyEvent.KEYCODE_SOFT_RIGHT) {
+            if (summonMenu) {
+                summonMenu = false;
+            } else if (detailCard == null && !deckBrowser && !phaseMenu
+                    && navRow == 3 && selectedHand < duel.getPlayerHand().size()
+                    && selectedHand >= 0
+                    && duel.getPlayerHand().get(selectedHand).kind == CardDefinition.Kind.MONSTER) {
+                summonMenu = true;
+                selectedSummonAction = 0;
+            } else {
+                pauseMenu = !pauseMenu;
+                selectedExitOption = 0;
+            }
+            invalidate();
+            return true;
+        }
         if (key == KeyEvent.KEYCODE_0) {
             if (pauseMenu) pauseMenu = false;
             else { pauseMenu = true; selectedExitOption = 0; }
@@ -345,7 +361,7 @@ public class DuelView extends View {
         paint.setColor(0xfff3f5f7);
         paint.setTextSize(Math.max(10, w * 0.028f));
         canvas.drawText(hint, 14, h - 48, paint);
-        canvas.drawText("D-PAD navigate | 5 inspect | 7/9 text | * phases | BACK return", 14, h - 20, paint);
+        canvas.drawText("D-PAD navigate | 5 inspect | 7/9 text | * phases | RIGHT actions/pause | BACK return", 14, h - 20, paint);
 
         if (deckBrowser) drawDeckBrowser(canvas, w, h);
         if (phaseMenu) drawPhaseMenu(canvas, w, h);
@@ -376,7 +392,7 @@ public class DuelView extends View {
         }
         paint.setColor(0xffd9eaf4);
         paint.setTextSize(Math.max(10, w * 0.028f));
-        canvas.drawText("D-PAD LEFT/RIGHT   5 CONFIRM", w / 2f, bottom - 12, paint);
+        canvas.drawText("D-PAD LEFT/RIGHT   5 CONFIRM   RIGHT PAUSE", w / 2f, bottom - 12, paint);
         paint.setTextAlign(Paint.Align.LEFT);
     }
 
