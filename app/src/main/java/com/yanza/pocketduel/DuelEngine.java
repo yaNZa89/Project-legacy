@@ -341,6 +341,7 @@ public final class DuelEngine {
                 if (attacker.attack > defenderValue) {
                     cpuGraveyard.add(defender);
                     cpuField[defenderSlot] = null;
+                    cpuMonsterFaceDown[defenderSlot] = false;
                     message = "Face-down Defense Position monster revealed and destroyed";
                 } else if (attacker.attack < defenderValue) {
                     playerLP = Math.max(0, playerLP - (defenderValue - attacker.attack));
