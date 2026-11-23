@@ -190,8 +190,11 @@ public final class DuelEngine {
         playerHand.remove(handIndex);
         String resolution = CardEffectResolver.resolveSpell(this, card);
         playerGraveyard.add(card);
-        message = card.name + " activated";
-        if (resolution.length() > 0) message += " - " + resolution;
+        // A draw effect may end the duel by Deck-out; preserve that terminal message.
+        if (phase != Phase.FINISHED) {
+            message = card.name + " activated";
+            if (resolution.length() > 0) message += " - " + resolution;
+        }
         return true;
     }
 
