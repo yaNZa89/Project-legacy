@@ -61,7 +61,9 @@ public class DuelView extends View {
                 editorTab = 1 - editorTab;
                 editorCursor = 0;
             } else if (key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER) {
-                toggleEditorCard();
+                addEditorCard();
+            } else if (key == KeyEvent.KEYCODE_SOFT_LEFT) {
+                removeEditorCard();
             } else if (key == KeyEvent.KEYCODE_STAR) {
                 gridView = !gridView;
             } else if (key == KeyEvent.KEYCODE_SOFT_RIGHT) {
@@ -591,12 +593,21 @@ public class DuelView extends View {
         return editorTab == 0 ? mainDeckDraft : extraDeckDraft;
     }
 
-    private void toggleEditorCard() {
+    private void addEditorCard() {
+        List<CardDefinition> cards = editorCards();
+        if (editorCursor < 0 || editorCursor >= cards.size()) return;
+        CardDefinition chosen = cards.get(editorCursor);
+        editorDeck().add(chosen);
+        hint = chosen.name + " added to deck";
+        invalidate();
+    }
+
+    private void removeEditorCard() {
         List<CardDefinition> cards = editorCards();
         if (editorCursor < 0 || editorCursor >= cards.size()) return;
         CardDefinition chosen = cards.get(editorCursor);
         List<CardDefinition> deck = editorDeck();
-        for (int i = 0; i < deck.size(); i++) {
+        for (int i = deck.size() - 1; i >= 0; i--) {
             if (deck.get(i).id.equals(chosen.id)) {
                 deck.remove(i);
                 hint = chosen.name + " removed from deck";
@@ -604,8 +615,7 @@ public class DuelView extends View {
                 return;
             }
         }
-        deck.add(chosen);
-        hint = chosen.name + " added to deck";
+        hint = "That card is not in this deck";
         invalidate();
     }
 
@@ -684,7 +694,7 @@ public class DuelView extends View {
         paint.setTextAlign(Paint.Align.CENTER);
         paint.setColor(0xffd9eaf4);
         paint.setTextSize(10);
-        canvas.drawText("Up/Down select | Left/Right tab | Center add/remove", w / 2f, h - 54, paint);
+        canvas.drawText("Up/Down select | Left/Right tab | Center add | Softkey Left remove", w / 2f, h - 54, paint);
         canvas.drawText("Softkey Right: Save/Load/Delete | # back", w / 2f, h - 34, paint);
         paint.setTextAlign(Paint.Align.LEFT);
     }
