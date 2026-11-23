@@ -86,7 +86,9 @@ public final class DeckBuilderView extends View {
     private int copies(String id) { int n=0; for(String s:main)if(s.equals(id))n++; for(String s:extra)if(s.equals(id))n++; return n; }
 
     public boolean handleKey(int k) {
-        if(k==KeyEvent.KEYCODE_0 || k==KeyEvent.KEYCODE_BACK) {
+        if(k==KeyEvent.KEYCODE_BACK) {
+            openCardSearch();
+        } else if(k==KeyEvent.KEYCODE_0) {
             if(detail) { detail=false; message="Back to "+pageName(); }
             else if(tab==DECK_MENU){tab=CARD_LIST;selected=0;message="Deck: "+activeDeck;}
             else { saveActiveDeck(); if(listener!=null)listener.onBackToMenu(); }
@@ -100,7 +102,6 @@ public final class DeckBuilderView extends View {
         else if(k==KeyEvent.KEYCODE_STAR) changeTab(-1);
         else if(k==KeyEvent.KEYCODE_POUND) changeTab(1);
         else if(k==KeyEvent.KEYCODE_7) { tab=DECK_MENU;selected=0;message="Manage saved decks"; }
-        else if(k==KeyEvent.KEYCODE_9) { openCardSearch(); }
         else if(k==KeyEvent.KEYCODE_DPAD_UP) moveVertical(-1);
         else if(k==KeyEvent.KEYCODE_DPAD_DOWN) moveVertical(1);
         else if(k==KeyEvent.KEYCODE_DPAD_LEFT) moveHorizontal(-1);
