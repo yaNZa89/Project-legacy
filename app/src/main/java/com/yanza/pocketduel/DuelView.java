@@ -14,6 +14,7 @@ import java.util.List;
 public class DuelView extends View {
     public interface Listener { void onExitToMenu(); void onDuelAgain(); }
     private final Listener listener;
+    private final String opponentName;
     private boolean pauseMenu;
     private int selectedExitOption;
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -35,14 +36,20 @@ public class DuelView extends View {
     private String hint = "D-pad navigate | OK action | * phases | # back";
 
     public DuelView(Context context, Listener listener) {
-        this(context, listener, null, null);
+        this(context, listener, null, null, "AI Duelist 01");
     }
 
     public DuelView(Context context, Listener listener, List<String> mainDeckIds,
                     List<String> extraDeckIds) {
+        this(context, listener, mainDeckIds, extraDeckIds, "AI Duelist 01");
+    }
+
+    public DuelView(Context context, Listener listener, List<String> mainDeckIds,
+                    List<String> extraDeckIds, String opponent) {
         super(context);
         this.listener = listener;
-        this.duel = new DuelEngine(mainDeckIds, extraDeckIds);
+        this.opponentName = opponent == null ? "AI Duelist 01" : opponent;
+        this.duel = new DuelEngine(mainDeckIds, extraDeckIds, this.opponentName);
         setFocusable(true);
     }
 
@@ -337,7 +344,7 @@ public class DuelView extends View {
         paint.setTextSize(Math.max(17, w * 0.052f));
         canvas.drawText("POCKET DUEL", 14, 30, paint);
         paint.setTextSize(Math.max(13, w * 0.036f));
-        canvas.drawText("CPU  LP: " + duel.getCpuLP(), 14, 58, paint);
+        canvas.drawText(opponentName + "  LP: " + duel.getCpuLP(), 14, 58, paint);
         canvas.drawText("TURN " + duel.getTurn(), w - 105, 58, paint);
 
         drawField(canvas, duel.getCpuField(), h * 0.115f, w, false);
