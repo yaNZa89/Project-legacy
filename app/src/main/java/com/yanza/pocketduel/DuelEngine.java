@@ -474,8 +474,10 @@ public final class DuelEngine {
     String destroyCpuAttackerForEffect(int slot) {
         if (!validSlot(slot) || cpuField[slot] == null) return "no valid attacking monster";
         CardDefinition attacker = cpuField[slot];
+        playerGraveyard.add(attacker);
         cpuField[slot] = null;
         cpuMonsterFaceDown[slot] = false;
+        cpuAttacked[slot] = true;
         message = attacker.name + " destroyed by Trap effect";
         return "attacking monster destroyed";
     }
