@@ -345,7 +345,7 @@ public class DuelView extends View {
         paint.setColor(0xfff3f5f7);
         paint.setTextSize(Math.max(10, w * 0.028f));
         canvas.drawText(hint, 14, h - 48, paint);
-        canvas.drawText("2/8 row | 4/6 cursor | 5 inspect | 7/9 text | * phases | # back", 14, h - 20, paint);
+        canvas.drawText("D-PAD navigate | 5 inspect | 7/9 text | * phases | BACK return", 14, h - 20, paint);
 
         if (deckBrowser) drawDeckBrowser(canvas, w, h);
         if (phaseMenu) drawPhaseMenu(canvas, w, h);
@@ -376,7 +376,7 @@ public class DuelView extends View {
         }
         paint.setColor(0xffd9eaf4);
         paint.setTextSize(Math.max(10, w * 0.028f));
-        canvas.drawText("4/6 CHOOSE   5 CONFIRM", w / 2f, bottom - 12, paint);
+        canvas.drawText("D-PAD LEFT/RIGHT   5 CONFIRM", w / 2f, bottom - 12, paint);
         paint.setTextAlign(Paint.Align.LEFT);
     }
 
@@ -402,7 +402,7 @@ public class DuelView extends View {
         }
         paint.setColor(0xffd9eaf4);
         paint.setTextSize(10);
-        canvas.drawText("4/6 choose | 5 confirm | # cancel", w / 2f, top + 94, paint);
+        canvas.drawText("D-PAD LEFT/RIGHT | 5 confirm | BACK cancel", w / 2f, top + 94, paint);
         paint.setTextAlign(Paint.Align.LEFT);
     }
 
@@ -470,7 +470,7 @@ public class DuelView extends View {
         paint.setTextAlign(Paint.Align.LEFT);
         paint.setColor(0xffd9eaf4);
         paint.setTextSize(Math.max(10, w * 0.028f));
-        canvas.drawText("4/6 move | 5 select | # close", left + 12, top + cellH + 48, paint);
+        canvas.drawText("D-PAD move | 5 select | BACK close", left + 12, top + cellH + 48, paint);
     }
 
     private void drawPhaseRibbon(Canvas canvas, float w, float h) {
@@ -634,7 +634,7 @@ public class DuelView extends View {
             canvas.drawText((i + 1) + ". " + deck.get(i).name, 26, 120 + (i - first) * 22, paint);
         }
         paint.setColor(0xffd9eaf4);
-        canvas.drawText("2/8 browse | 5 inspect | # close", 25, h - 108, paint);
+        canvas.drawText("D-PAD browse | 5 inspect | BACK close", 25, h - 108, paint);
     }
 
     private void drawCardDetails(Canvas canvas, float w, float h) {
