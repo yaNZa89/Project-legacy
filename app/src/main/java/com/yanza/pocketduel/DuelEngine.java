@@ -114,6 +114,7 @@ public final class DuelEngine {
         if (slot < 0) return reject("Your monster area is full");
         playerHand.remove(handIndex);
         playerField[slot] = card;
+        playerMonsterFaceDown[slot] = false;
         playerNormalSummons++;
         message = card.name + " summoned to slot " + (slot + 1);
         String effectMessage = CardEffectResolver.resolveOnSummon(this, card);
@@ -469,6 +470,7 @@ public final class DuelEngine {
             CardDefinition candidate = playerGraveyard.get(i);
             if (candidate.kind == CardDefinition.Kind.MONSTER) {
                 playerField[target] = candidate;
+                playerMonsterFaceDown[target] = false;
                 playerGraveyard.remove(i);
                 return true;
             }
