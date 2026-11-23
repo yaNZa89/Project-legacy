@@ -318,28 +318,33 @@ public final class DuelEngine {
     private void runCpuTurn() {
         draw(cpuDeck, cpuHand, 1);
         if (firstEmpty(cpuField) >= 0 && !cpuHand.isEmpty()) {
-            int strongestIndex = -1;
-            int strongestAtk = -1;
+            int bestIndex = -1;
+            int bestScore = Integer.MIN_VALUE;
             for (int i = 0; i < cpuHand.size(); i++) {
-                CardDefinition c = cpuHand.get(i);
-                if (c.level < 5 && c.attack > strongestAtk) {
-                    strongestAtk = c.attack;
-                    strongestIndex = i;
+                CardDefinition candidate = cpuHand.get(i);
+                if (candidate.level >= 5) continue;
+                int score = scoreCpuSummon(candidate);
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestIndex = i;
                 }
             }
-            if (strongestIndex >= 0) {
+            if (bestIndex >= 0) {
                 int slot = firstEmpty(cpuField);
-                CardDefinition choice = cpuHand.get(strongestIndex);
-                cpuField[slot] = cpuHand.remove(strongestIndex);
-                // Set decisions depend on the board state, never on ATK/DEF thresholds.
-                cpuMonsterFaceDown[slot] = weakestMonster(playerField) >= 0;
-                message = cpuMonsterFaceDown[slot] ? "Opponent Set a monster face-down" : "Opponent Normal Summoned a monster";
+                CardDefinition choice = cpuHand.remove(bestIndex);
+                cpuField[slot] = choice;
+                // Prefer Set when the card is defensive and the player already controls a monster.
+                cpuMonsterFaceDown[slot] = hasMonsters(playerField)
+                        && choice.defense > choice.attack;
+                message = cpuMonsterFaceDown[slot]
+                        ? "Opponent Set a monster face-down"
+                        : "Opponent Normal Summoned a monster";
             }
         }
         for (int i = 0; i < cpuField.length; i++) {
             CardDefinition attacker = cpuField[i];
             if (attacker == null || cpuAttacked[i] || cpuMonsterFaceDown[i]) continue;
-            int target = weakestMonster(playerField);
+            int target = weakestCpuBattleTarget();
             if (target < 0) {
                 playerLP = Math.max(0, playerLP - attacker.attack);
             } else if (playerMonsterFaceDown[target]) {
@@ -369,6 +374,34 @@ public final class DuelEngine {
             if (phase == Phase.FINISHED) return;
         }
         clearAttacks(cpuAttacked);
+    }
+
+    /** Scores available low-level monsters using board synergy before raw ATK. */
+    private int scoreCpuSummon(CardDefinition candidate) {
+        int score = candidate.attack + candidate.defense / 4;
+        if (candidate.effectId.length() > 0) score += 350;
+        for (CardDefinition onField : cpuField) {
+            if (onField == null) continue;
+            if (candidate.monsterType != null && candidate.monsterType == onField.monsterType) score += 500;
+            if (candidate.attribute != null && candidate.attribute == onField.attribute) score += 200;
+        }
+        return score;
+    }
+
+    /** Face-down monsters are evaluated by DEF; face-up monsters by ATK. */
+    private int weakestCpuBattleTarget() {
+        int slot = -1;
+        int weakestValue = Integer.MAX_VALUE;
+        for (int i = 0; i < playerField.length; i++) {
+            CardDefinition target = playerField[i];
+            if (target == null) continue;
+            int value = playerMonsterFaceDown[i] ? target.defense : target.attack;
+            if (value < weakestValue) {
+                weakestValue = value;
+                slot = i;
+            }
+        }
+        return slot;
     }
 
     boolean drawOneForEffect() {
