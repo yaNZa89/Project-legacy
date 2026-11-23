@@ -163,8 +163,10 @@ public final class DuelEngine {
         if (selected.kind == CardDefinition.Kind.SPELL
                 && selected.spellTrapType != CardDefinition.SpellTrapType.QUICKPLAY_SPELL)
             return reject("Only a Set Quick-Play Spell can be activated later");
-        if (playerSpellTrapSetTurn[slot] >= turn && phase != Phase.END)
-            return reject("A Trap cannot activate on the turn it was Set");
+        // A Trap or Set Quick-Play Spell cannot be activated during the same
+        // turn it was Set, including that turn's End Phase.
+        if (playerSpellTrapSetTurn[slot] >= turn)
+            return reject("A Set card cannot activate during the turn it was Set");
         CardDefinition card = playerSpellTrap[slot];
         playerSpellTrapFaceDown[slot] = false;
         String effect = resolveSpellTrapEffect(card);
