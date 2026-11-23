@@ -49,6 +49,14 @@ public final class CardCatalog {
         add("twilight_illusionist", "Twilight Illusionist", CardDefinition.MonsterType.ILLUSION, CardDefinition.Attribute.DARK, 4, 1400, 1300, "");
         add("divine_sentinel", "Divine Sentinel", CardDefinition.MonsterType.DIVINE_BEAST, CardDefinition.Attribute.DIVINE, 7, 2500, 2200, "");
 
+        addSpell("field_repair", "Field Repair", "DRAW_ONE");
+        addSpell("arcane_surge", "Arcane Surge", "DRAW_TWO");
+        addSpell("guardian_charm", "Guardian Charm", "GAIN_LP");
+        addSpell("monster_reborn_echo", "Rebirth Echo", "REVIVE_MONSTER");
+        addTrap("mirror_guard", "Mirror Guard", "NEGATE_ATTACK");
+        addTrap("last_stand", "Last Stand", "PREVENT_DAMAGE");
+        addTrap("grave snare".replace(" ", "_"), "Grave Snare", "TRAP_DESTROY");
+
         addPendulum("scale_flare_adept", "Scale Flare Adept", CardDefinition.MonsterType.SPELLCASTER, CardDefinition.Attribute.FIRE, 4, 1500, 1000, 2);
         addPendulum("scale_tide_beast", "Scale Tide Beast", CardDefinition.MonsterType.AQUA, CardDefinition.Attribute.WATER, 4, 1400, 1600, 7);
         addPendulum("scale_gale_ranger", "Scale Gale Ranger", CardDefinition.MonsterType.WARRIOR, CardDefinition.Attribute.WIND, 3, 1200, 900, 1);
@@ -71,6 +79,17 @@ public final class CardCatalog {
                                     int def, int scale) {
         CARDS.add(new CardDefinition(id, name, CardDefinition.Kind.MONSTER,
                 CardDefinition.SummonMethod.PENDULUM, type, attribute, level, atk, def, scale, ""));
+    }
+
+
+    private static void addSpell(String id, String name, String effect) {
+        CARDS.add(new CardDefinition(id, name, CardDefinition.Kind.SPELL,
+                CardDefinition.SummonMethod.NORMAL, null, null, 0, 0, 0, -1, effect));
+    }
+
+    private static void addTrap(String id, String name, String effect) {
+        CARDS.add(new CardDefinition(id, name, CardDefinition.Kind.TRAP,
+                CardDefinition.SummonMethod.NORMAL, null, null, 0, 0, 0, -1, effect));
     }
 
     public static List<CardDefinition> all() { return Collections.unmodifiableList(CARDS); }
