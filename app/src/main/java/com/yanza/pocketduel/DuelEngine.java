@@ -121,7 +121,9 @@ public final class DuelEngine {
         playerNormalSummons++;
         message = card.name + " summoned to slot " + (slot + 1);
         String effectMessage = CardEffectResolver.resolveOnSummon(this, card);
-        if (effectMessage.length() > 0) message += " - " + effectMessage;
+        if (phase != Phase.FINISHED && effectMessage.length() > 0) {
+            message += " - " + effectMessage;
+        }
         return true;
     }
 
@@ -168,7 +170,9 @@ public final class DuelEngine {
         playerAttacked[slot] = false;
         message = card.name + " Special Summoned from hand";
         String effectMessage = CardEffectResolver.resolveOnSummon(this, card);
-        if (effectMessage.length() > 0) message += " - " + effectMessage;
+        if (phase != Phase.FINISHED && effectMessage.length() > 0) {
+            message += " - " + effectMessage;
+        }
         return true;
     }
 
@@ -264,7 +268,9 @@ public final class DuelEngine {
         playerNormalSummons++;
         message = card.name + " Tribute Summoned (" + required + " tribute)";
         String effectMessage = CardEffectResolver.resolveOnSummon(this, card);
-        if (effectMessage.length() > 0) message += " - " + effectMessage;
+        if (phase != Phase.FINISHED && effectMessage.length() > 0) {
+            message += " - " + effectMessage;
+        }
         return true;
     }
 
