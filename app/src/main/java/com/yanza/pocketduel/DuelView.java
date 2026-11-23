@@ -341,12 +341,18 @@ public class DuelView extends View {
             hint = "Select a monster in your hand";
         } else {
             CardDefinition card = hand.get(selectedHand);
-            if (selectedSummonAction == 0) {
-                if (card.level >= 5) duel.tributeSummonFromHand(selectedHand);
-                else duel.summonFromHand(selectedHand);
+            if (card.kind == CardDefinition.Kind.MONSTER) {
+                if (selectedSummonAction == 0) {
+                    if (card.level >= 5) duel.tributeSummonFromHand(selectedHand);
+                    else duel.summonFromHand(selectedHand);
+                } else {
+                    if (card.level >= 5) duel.tributeSetFromHand(selectedHand);
+                    else duel.setFromHand(selectedHand);
+                }
+            } else if (card.kind == CardDefinition.Kind.SPELL) {
+                duel.activateSpellFromHand(selectedHand);
             } else {
-                if (card.level >= 5) duel.tributeSetFromHand(selectedHand);
-                else duel.setFromHand(selectedHand);
+                duel.setTrapFromHand(selectedHand);
             }
             selectedHand = clamp(selectedHand, 0, Math.max(0, duel.getPlayerHand().size() - 1));
             navColumn = selectedHand;
@@ -708,7 +714,14 @@ public class DuelView extends View {
         paint.setColor(0xffffd477);
         paint.setTextSize(16);
         canvas.drawText("MONSTER ACTION", w / 2f, top + 25, paint);
-        String[] labels = {"SUMMON", "SET FACE-DOWN"};
+        List<CardDefinition> hand = duel.getPlayerHand();
+        CardDefinition selected = selectedHand >= 0 && selectedHand < hand.size()
+                ? hand.get(selectedHand) : null;
+        String[] labels = selected != null && selected.kind == CardDefinition.Kind.SPELL
+                ? new String[]{"ACTIVATE SPELL"}
+                : selected != null && selected.kind == CardDefinition.Kind.TRAP
+                ? new String[]{"SET TRAP"}
+                : new String[]{"SUMMON", "SET FACE-DOWN"};
         for (int i = 0; i < labels.length; i++) {
             float x = left + 10 + i * ((right - left - 25) / 2f);
             float width = (right - left - 25) / 2f;
