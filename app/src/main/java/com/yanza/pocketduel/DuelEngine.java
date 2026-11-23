@@ -114,7 +114,9 @@ public final class DuelEngine {
         CardDefinition card = playerHand.get(handIndex);
         if (card.kind != CardDefinition.Kind.SPELL) return reject("Select a Spell Card");
         int slot = firstEmpty(playerSpellTrap);
-        if (slot < 0) return reject("Spell/Trap Zone is full");
+        if (card.spellTrapType != CardDefinition.SpellTrapType.FIELD_SPELL && slot < 0) {
+            return reject("Spell/Trap Zone is full");
+        }
         playerHand.remove(handIndex);
         if (card.spellTrapType == CardDefinition.SpellTrapType.FIELD_SPELL) {
             if (playerFieldSpell != null) playerGraveyard.add(playerFieldSpell);
