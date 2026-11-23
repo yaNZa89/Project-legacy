@@ -120,6 +120,8 @@ public final class DuelEngine {
         if (handIndex < 0 || handIndex >= playerHand.size()) return reject("Select a Spell in your hand");
         CardDefinition card = playerHand.get(handIndex);
         if (card.kind != CardDefinition.Kind.SPELL) return reject("Select a Spell Card");
+        if (card.spellTrapType == CardDefinition.SpellTrapType.QUICKPLAY_SPELL && phase != Phase.MAIN1 && phase != Phase.MAIN2)
+            return reject("Quick-Play Spell from hand requires your Main Phase");
         int slot = firstEmpty(playerSpellTrap);
         if (card.spellTrapType != CardDefinition.SpellTrapType.FIELD_SPELL && slot < 0) {
             return reject("Spell/Trap Zone is full");
@@ -161,7 +163,8 @@ public final class DuelEngine {
         if (selected.kind == CardDefinition.Kind.SPELL
                 && selected.spellTrapType != CardDefinition.SpellTrapType.QUICKPLAY_SPELL)
             return reject("Only a Set Quick-Play Spell can be activated later");
-        if (playerSpellTrapSetTurn[slot] >= turn) return reject("A Trap cannot activate on the turn it was Set");
+        if (playerSpellTrapSetTurn[slot] >= turn && phase != Phase.END)
+            return reject("A Trap cannot activate on the turn it was Set");
         CardDefinition card = playerSpellTrap[slot];
         playerSpellTrapFaceDown[slot] = false;
         String effect = resolveSpellTrapEffect(card);
@@ -540,12 +543,11 @@ public final class DuelEngine {
         for (int slot = 0; slot < 5; slot++) {
             CardDefinition trap = playerSpellTrap[slot];
             if (trap == null || !playerSpellTrapFaceDown[slot]
-                    || playerSpellTrapSetTurn[slot] >= turn) continue;
+                    || (playerSpellTrapSetTurn[slot] >= turn && phase != Phase.END)) continue;
             if ("DESTROY_WEAKEST".equals(trap.effectId)) {
                 playerSpellTrapFaceDown[slot] = false;
                 playerGraveyard.add(trap);
                 playerSpellTrap[slot] = null;
-                playerGraveyard.add(trap);
                 if (attackerSlot >= 0 && cpuField[attackerSlot] != null) {
                     cpuField[attackerSlot] = null;
                     cpuMonsterFaceDown[attackerSlot] = false;
