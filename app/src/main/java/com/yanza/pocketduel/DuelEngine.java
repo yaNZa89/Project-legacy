@@ -191,6 +191,8 @@ public final class DuelEngine {
         if (handIndex < 0 || handIndex >= playerHand.size()) return reject("Select a card in your hand");
         CardDefinition card = playerHand.get(handIndex);
         if (card.kind != CardDefinition.Kind.SPELL) return reject("Select a Spell Card");
+        if (!CardEffectResolver.canActivateSpell(this, card))
+            return reject("No eligible target or Monster Zone for this Spell");
         // A Normal Spell resolves from the hand and goes to the Graveyard;
         // it does not occupy a Spell/Trap Zone, even when all five zones are full.
         playerHand.remove(handIndex);
@@ -508,6 +510,14 @@ public final class DuelEngine {
         int before = playerLP;
         playerLP = Math.min(12000, playerLP + amount);
         return playerLP - before;
+    }
+
+    boolean canReviveMonsterForEffect() {
+        if (firstEmpty(playerField) < 0) return false;
+        for (CardDefinition candidate : playerGraveyard) {
+            if (candidate.kind == CardDefinition.Kind.MONSTER) return true;
+        }
+        return false;
     }
 
     boolean reviveMonsterForEffect() {
