@@ -63,6 +63,12 @@ public final class CardEffectResolver {
                         return "opponent attack negated";
                     }
                 });
+        register("SPECIAL_SUMMON_IF_NO_MONSTERS", EffectDefinition.Timing.HAND_SPECIAL_SUMMON,
+                "NO_MONSTERS_ON_FIELD", new Operation() {
+                    public String execute(DuelEngine duel, CardDefinition source, int context) {
+                        return "Special Summoned while you control no monsters";
+                    }
+                });
         register("DESTROY_ATTACKER", EffectDefinition.Timing.WHEN_ATTACKS, "DESTROY_ATTACKER",
                 new Operation() {
                     public String execute(DuelEngine duel, CardDefinition source, int context) {
@@ -86,6 +92,14 @@ public final class CardEffectResolver {
         if (definition == null || definition.timing != requiredTiming) return "";
         Operation operation = OPERATIONS.get(definition.operation);
         return operation == null ? "" : operation.execute(duel, source, context);
+    }
+
+    public static boolean canSpecialSummonFromHand(DuelEngine duel, CardDefinition source) {
+        if (source == null) return false;
+        EffectDefinition definition = DEFINITIONS.get(source.effectId);
+        if (definition == null || definition.timing != EffectDefinition.Timing.HAND_SPECIAL_SUMMON)
+            return false;
+        return "NO_MONSTERS_ON_FIELD".equals(definition.operation) && !duel.hasPlayerMonsters();
     }
 
     public static String resolveOnSummon(DuelEngine duel, CardDefinition source) {
