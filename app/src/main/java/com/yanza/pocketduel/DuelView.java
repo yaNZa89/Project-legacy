@@ -16,7 +16,7 @@ import java.util.List;
 /** Portrait duel screen with context-sensitive keypad controls and card inspection. */
 public class DuelView extends View {
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private DuelEngine duel = new DuelEngine();
+    private DuelEngine duel = createConfiguredDuel();
     private boolean pauseMenu;
     private boolean titleScreen;
     private boolean deckEditor;
@@ -488,6 +488,11 @@ public class DuelView extends View {
     }
 
 
+
+    private DuelEngine createConfiguredDuel() {
+        return mainDeckDraft.isEmpty() ? new DuelEngine()
+                : new DuelEngine(mainDeckDraft, extraDeckDraft);
+    }
 
     private void resetArenaCursor() {
         selectedHand = 0;
