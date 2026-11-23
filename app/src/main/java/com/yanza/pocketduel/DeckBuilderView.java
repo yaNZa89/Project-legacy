@@ -193,10 +193,15 @@ public final class DeckBuilderView extends View {
             else { main.add(c.id);saveActiveDeck();message=c.name+" added to Main Deck"; }
         } else {
             List<String> target=tab==MAIN_DECK?main:extra;
-            if(selected<target.size()) {
-                target.remove(selected);
-                selected=Math.max(0,Math.min(selected,target.size()-1));
+            // Search results are filtered; remove the selected card by ID,
+            // not by its filtered-list position in the underlying deck.
+            int actualIndex=target.indexOf(c.id);
+            if(actualIndex>=0) {
+                target.remove(actualIndex);
+                selected=Math.max(0,Math.min(selected,items().size()-1));
                 saveActiveDeck();message=c.name+" removed";
+            } else {
+                message="Card no longer in this deck";
             }
         }
     }
