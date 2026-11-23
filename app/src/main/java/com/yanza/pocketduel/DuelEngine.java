@@ -332,7 +332,8 @@ public final class DuelEngine {
                     cpuField[defenderSlot] = null;
                     message = "Face-down Defense Position monster revealed and destroyed";
                 } else if (attacker.attack < defenderValue) {
-                    message = "Defense Position monster revealed; attacker survives";
+                    playerLP = Math.max(0, playerLP - (defenderValue - attacker.attack));
+                    message = "Defense Position monster revealed; attacker survives and you take battle damage";
                 } else {
                     message = "Defense Position monster revealed; both survive";
                 }
