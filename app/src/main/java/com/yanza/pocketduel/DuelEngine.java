@@ -344,11 +344,14 @@ public final class DuelEngine {
                 playerLP = Math.max(0, playerLP - (defenderValue - attacker.attack));
                 playerGraveyard.add(attacker);
                 playerField[attackerSlot] = null;
+                playerMonsterFaceDown[attackerSlot] = false;
                 message = attacker.name + " loses the battle";
             } else {
                 playerGraveyard.add(attacker);
                 playerField[attackerSlot] = null;
+                playerMonsterFaceDown[attackerSlot] = false;
                 cpuField[defenderSlot] = null;
+                cpuMonsterFaceDown[defenderSlot] = false;
                 message = "Both monsters are removed";
             }
         } else {
@@ -423,6 +426,7 @@ public final class DuelEngine {
                 if (attacker.attack > defense) {
                     playerGraveyard.add(playerField[target]);
                     playerField[target] = null;
+                    playerMonsterFaceDown[target] = false;
                     message = "Your face-down monster was revealed and destroyed";
                 } else {
                     message = "Your face-down monster was revealed and survives";
