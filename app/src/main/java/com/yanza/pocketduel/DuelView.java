@@ -72,11 +72,24 @@ public class DuelView extends View {
         }
         if (pauseMenu) {
             if (key == KeyEvent.KEYCODE_DPAD_UP) {
-                selectedPauseOption = clamp(selectedPauseOption - 1, 0, 3);
+                selectedPauseOption = clamp(selectedPauseOption - 1, 0, duel.getPhase() == DuelEngine.Phase.FINISHED ? 2 : 3);
             } else if (key == KeyEvent.KEYCODE_DPAD_DOWN) {
-                selectedPauseOption = clamp(selectedPauseOption + 1, 0, 3);
+                selectedPauseOption = clamp(selectedPauseOption + 1, 0, duel.getPhase() == DuelEngine.Phase.FINISHED ? 2 : 3);
             } else if (key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER) {
-                if (selectedPauseOption == 0 && duel.getPhase() != DuelEngine.Phase.FINISHED) {
+                if (duel.getPhase() == DuelEngine.Phase.FINISHED) {
+                    if (selectedPauseOption == 0) {
+                        pauseMenu = false;
+                        duel = new DuelEngine();
+                        resetArenaCursor();
+                        hint = "Duel restarted";
+                    } else if (selectedPauseOption == 1) {
+                        opponentMenu = true;
+                        selectedOpponent = 0;
+                    } else {
+                        pauseMenu = false;
+                        titleScreen = true;
+                    }
+                } else if (selectedPauseOption == 0) {
                     pauseMenu = false;
                 } else if (selectedPauseOption == 1) {
                     pauseMenu = false;
@@ -399,7 +412,9 @@ public class DuelView extends View {
     }
 
     private void drawPauseMenu(Canvas canvas, float w, float h) {
-        String[] labels = {"RESUME", "DUEL AGAIN", "CHOOSE OPPONENT", "MAIN SCREEN"};
+        String[] labels = duel.getPhase() == DuelEngine.Phase.FINISHED
+                ? new String[]{"DUEL AGAIN", "CHOOSE OPPONENT", "MAIN SCREEN"}
+                : new String[]{"RESUME", "DUEL AGAIN", "CHOOSE OPPONENT", "MAIN SCREEN"};
         float left = w * 0.13f, top = h * 0.30f, width = w * 0.74f;
         paint.setColor(0xf0142637);
         canvas.drawRoundRect(new RectF(left, top, left + width, top + 260), 12, 12, paint);
