@@ -139,6 +139,37 @@ public final class DuelEngine {
         return true;
     }
 
+    /** Special Summon from hand only when the card's own registered condition is met. */
+    public boolean canSpecialSummonFromHand(int handIndex) {
+        if (!isMainPhase() || handIndex < 0 || handIndex >= playerHand.size()) return false;
+        CardDefinition card = playerHand.get(handIndex);
+        return card.kind == CardDefinition.Kind.MONSTER
+                && CardEffectResolver.canSpecialSummonFromHand(this, card)
+                && firstEmpty(playerField) >= 0;
+    }
+
+    public boolean specialSummonFromHand(int handIndex) {
+        if (!isMainPhase()) return reject("Special Summon from hand requires Main Phase 1 or 2");
+        if (handIndex < 0 || handIndex >= playerHand.size()) return reject("Select a card in your hand");
+        CardDefinition card = playerHand.get(handIndex);
+        if (card.kind != CardDefinition.Kind.MONSTER
+                || !CardEffectResolver.canSpecialSummonFromHand(this, card))
+            return reject("This monster's Special Summon condition is not met");
+        int slot = firstEmpty(playerField);
+        if (slot < 0) return reject("Your Monster Zone is full");
+        playerHand.remove(handIndex);
+        playerField[slot] = card;
+        playerMonsterFaceDown[slot] = false;
+        message = card.name + " Special Summoned from hand";
+        String effectMessage = CardEffectResolver.resolveOnSummon(this, card);
+        if (effectMessage.length() > 0) message += " - " + effectMessage;
+        return true;
+    }
+
+    boolean hasPlayerMonsters() {
+        return hasMonsters(playerField);
+    }
+
     public boolean activateSpellFromHand(int handIndex) {
         if (!isMainPhase()) return reject("Spell activation requires a Main Phase");
         if (handIndex < 0 || handIndex >= playerHand.size()) return reject("Select a card in your hand");
