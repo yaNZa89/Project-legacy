@@ -148,23 +148,11 @@ public final class DuelEngine {
         if (slot < 0) return reject("Your Spell/Trap Zone is full");
         playerHand.remove(handIndex);
         playerSpellTrap[slot] = card;
-        if ("DRAW_ONE".equals(card.effectId)) draw(playerDeck, playerHand, 1);
-        else if ("DRAW_TWO".equals(card.effectId)) draw(playerDeck, playerHand, 2);
-        else if ("GAIN_LP".equals(card.effectId)) playerLP = Math.min(12000, playerLP + 500);
-        else if ("REVIVE_MONSTER".equals(card.effectId)) {
-            int target = firstEmpty(playerField);
-            for (int i = playerGraveyard.size() - 1; i >= 0; i--) {
-                CardDefinition candidate = playerGraveyard.get(i);
-                if (candidate.kind == CardDefinition.Kind.MONSTER && target >= 0) {
-                    playerField[target] = candidate;
-                    playerGraveyard.remove(i);
-                    break;
-                }
-            }
-        }
+        String resolution = CardEffectResolver.resolveSpell(this, card);
         playerGraveyard.add(playerSpellTrap[slot]);
         playerSpellTrap[slot] = null;
         message = card.name + " activated";
+        if (resolution.length() > 0) message += " - " + resolution;
         return true;
     }
 
@@ -372,13 +360,16 @@ public final class DuelEngine {
             CardDefinition attacker = cpuField[i];
             if (attacker == null || cpuAttacked[i] || cpuMonsterFaceDown[i]) continue;
             int target = weakestMonster(playerField);
-            int trapSlot = firstSetTrap("NEGATE_ATTACK", "PREVENT_DAMAGE");
+            int trapSlot = firstSetTrap("NEGATE_ATTACK", "PREVENT_DAMAGE", "DESTROY_ATTACKER");
             if (trapSlot >= 0) {
                 CardDefinition trap = playerSpellTrap[trapSlot];
+                String resolution = CardEffectResolver.resolveTrapOnAttack(this, trap, i);
                 playerSpellTrap[trapSlot] = null;
                 playerGraveyard.add(trap);
-                message = trap.name + " activated; opponent attack stopped";
+                message = trap.name + " activated";
+                if (resolution.length() > 0) message += " - " + resolution;
                 cpuAttacked[i] = true;
+                if (phase == Phase.FINISHED) return;
                 continue;
             }
             if (target < 0) {
@@ -413,6 +404,41 @@ public final class DuelEngine {
         int before = playerHand.size();
         draw(playerDeck, playerHand, 1);
         return playerHand.size() > before;
+    }
+
+    int drawCardsForEffect(int count) {
+        int before = playerHand.size();
+        draw(playerDeck, playerHand, count);
+        return playerHand.size() - before;
+    }
+
+    int gainLifePointsForEffect(int amount) {
+        int before = playerLP;
+        playerLP = Math.min(12000, playerLP + amount);
+        return playerLP - before;
+    }
+
+    boolean reviveMonsterForEffect() {
+        int target = firstEmpty(playerField);
+        if (target < 0) return false;
+        for (int i = playerGraveyard.size() - 1; i >= 0; i--) {
+            CardDefinition candidate = playerGraveyard.get(i);
+            if (candidate.kind == CardDefinition.Kind.MONSTER) {
+                playerField[target] = candidate;
+                playerGraveyard.remove(i);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    String destroyCpuAttackerForEffect(int slot) {
+        if (!validSlot(slot) || cpuField[slot] == null) return "no valid attacking monster";
+        CardDefinition attacker = cpuField[slot];
+        cpuField[slot] = null;
+        cpuMonsterFaceDown[slot] = false;
+        message = attacker.name + " destroyed by Trap effect";
+        return "attacking monster destroyed";
     }
 
     private void draw(List<CardDefinition> deck, List<CardDefinition> hand, int count) {
