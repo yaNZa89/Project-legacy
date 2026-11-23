@@ -117,6 +117,16 @@ public final class CardEffectResolver {
         return resolve(duel, source, EffectDefinition.Timing.ON_SUMMON, -1);
     }
 
+    public static boolean canActivateSpell(DuelEngine duel, CardDefinition source) {
+        if (source == null || source.kind != CardDefinition.Kind.SPELL) return false;
+        EffectDefinition definition = DEFINITIONS.get(source.effectId);
+        if (definition == null || definition.timing != EffectDefinition.Timing.ON_ACTIVATION)
+            return false;
+        if ("REVIVE_MONSTER".equals(definition.operation))
+            return duel.canReviveMonsterForEffect();
+        return true;
+    }
+
     public static String resolveSpell(DuelEngine duel, CardDefinition source) {
         return resolve(duel, source, EffectDefinition.Timing.ON_ACTIVATION, -1);
     }
