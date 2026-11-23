@@ -641,6 +641,9 @@ public class DuelView extends View {
         List<String> lines = new ArrayList<String>();
         lines.add(c.name);
         lines.add("KIND: " + c.kind);
+        if (c.kind == CardDefinition.Kind.SPELL || c.kind == CardDefinition.Kind.TRAP) {
+            lines.add("CARD TYPE: " + c.spellTrapType);
+        }
         if (c.kind == CardDefinition.Kind.MONSTER) {
             lines.add("TYPE: " + (c.monsterType == null ? "Unassigned" : c.monsterType));
             lines.add("ATTRIBUTE: " + (c.attribute == null ? "Unassigned" : c.attribute));
