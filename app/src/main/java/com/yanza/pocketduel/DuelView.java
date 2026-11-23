@@ -62,7 +62,7 @@ public class DuelView extends View {
             invalidate(); return true;
         }
         if (pauseMenu) {
-            if (key == KeyEvent.KEYCODE_4 || key == KeyEvent.KEYCODE_DPAD_LEFT || key == KeyEvent.KEYCODE_6 || key == KeyEvent.KEYCODE_DPAD_RIGHT) selectedExitOption = 1 - selectedExitOption;
+            if (key == KeyEvent.KEYCODE_DPAD_LEFT || key == KeyEvent.KEYCODE_DPAD_RIGHT) selectedExitOption = 1 - selectedExitOption;
             else if (key == KeyEvent.KEYCODE_5 || key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER) {
                 if (selectedExitOption == 0) pauseMenu = false;
                 else if (listener != null) listener.onExitToMenu();
@@ -129,11 +129,11 @@ public class DuelView extends View {
         }
 
         if (key == KeyEvent.KEYCODE_DPAD_LEFT || key == KeyEvent.KEYCODE_DPAD_RIGHT) {
-            int direction = (key == KeyEvent.KEYCODE_DPAD_LEFT || key == KeyEvent.KEYCODE_4) ? -1 : 1;
+            int direction = key == KeyEvent.KEYCODE_DPAD_LEFT ? -1 : 1;
             navColumn = clamp(navColumn + direction, 0, rowMaxColumn(navRow));
             syncNavigationSelection();
         } else if (key == KeyEvent.KEYCODE_DPAD_UP || key == KeyEvent.KEYCODE_DPAD_DOWN) {
-            int direction = (key == KeyEvent.KEYCODE_DPAD_UP || key == KeyEvent.KEYCODE_2) ? -1 : 1;
+            int direction = key == KeyEvent.KEYCODE_DPAD_UP ? -1 : 1;
             navRow = clamp(navRow + direction, 0, 3);
             navColumn = clamp(navColumn, 0, rowMaxColumn(navRow));
             syncNavigationSelection();
