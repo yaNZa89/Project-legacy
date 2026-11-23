@@ -30,6 +30,13 @@ public final class MainMenuView extends View {
         setFocusableInTouchMode(true);
     }
 
+    public void openOpponentSelection() {
+        screen = Screen.OPPONENT;
+        selected = 0;
+        notice = "Choose your AI opponent";
+        invalidate();
+    }
+
     public boolean handleKey(int key) {
         if (key == KeyEvent.KEYCODE_2 || key == KeyEvent.KEYCODE_DPAD_UP) {
             selected = Math.max(0, selected - 1);
