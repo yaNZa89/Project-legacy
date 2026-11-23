@@ -29,11 +29,12 @@ public final class DeckStorage {
         if (section.length() == 0) return ids;
         for (String id : section.split(",")) {
             CardDefinition card = CardCatalog.find(id);
-            if (card == null || card.kind != CardDefinition.Kind.MONSTER) continue;
-            boolean extraCard = card.summonMethod == CardDefinition.SummonMethod.FUSION
+            if (card == null) continue;
+            boolean extraCard = card.kind == CardDefinition.Kind.MONSTER
+                    && (card.summonMethod == CardDefinition.SummonMethod.FUSION
                     || card.summonMethod == CardDefinition.SummonMethod.SYNCHRO
                     || card.summonMethod == CardDefinition.SummonMethod.XYZ
-                    || card.summonMethod == CardDefinition.SummonMethod.LINK;
+                    || card.summonMethod == CardDefinition.SummonMethod.LINK);
             if (extraCard == extra) ids.add(id);
         }
         return ids;
