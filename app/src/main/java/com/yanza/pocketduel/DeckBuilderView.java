@@ -2,6 +2,7 @@ package com.yanza.pocketduel;
 
 import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.graphics.Canvas;
 import android.graphics.Paint;
@@ -138,15 +139,19 @@ public final class DeckBuilderView extends View {
         new AlertDialog.Builder(getContext())
                 .setTitle("Cari kartu berdasarkan nama")
                 .setView(input)
-                .setPositiveButton("CARI", (dialog, which) -> {
-                    searchQuery=input.getText().toString().trim();
-                    selected=0;scroll=0;detail=false;
-                    message=searchQuery.length()==0?"Pencarian dibersihkan":"Hasil: "+items().size()+" kartu";
-                    invalidate();
+                .setPositiveButton("CARI", new DialogInterface.OnClickListener() {
+                    @Override public void onClick(DialogInterface dialog, int which) {
+                        searchQuery=input.getText().toString().trim();
+                        selected=0;scroll=0;detail=false;
+                        message=searchQuery.length()==0?"Pencarian dibersihkan":"Hasil: "+items().size()+" kartu";
+                        invalidate();
+                    }
                 })
-                .setNeutralButton("HAPUS", (dialog, which) -> {
-                    searchQuery="";selected=0;scroll=0;detail=false;
-                    message="Pencarian dibersihkan";invalidate();
+                .setNeutralButton("HAPUS", new DialogInterface.OnClickListener() {
+                    @Override public void onClick(DialogInterface dialog, int which) {
+                        searchQuery="";selected=0;scroll=0;detail=false;
+                        message="Pencarian dibersihkan";invalidate();
+                    }
                 })
                 .setNegativeButton("BATAL", null)
                 .show();
