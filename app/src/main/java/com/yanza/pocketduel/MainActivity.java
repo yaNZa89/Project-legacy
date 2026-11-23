@@ -40,12 +40,24 @@ public class MainActivity extends Activity {
         deckBuilderView.requestFocus();
     }
 
+    private void showOpponentSelection() {
+        duelView = null;
+        deckBuilderView = null;
+        mainMenuView = new MainMenuView(this, new MainMenuView.Listener() {
+            @Override public void onStartDuel(String opponent) { startDuel(opponent); }
+            @Override public void onOpenDeck() { showDeckBuilder(); }
+        });
+        mainMenuView.openOpponentSelection();
+        setContentView(mainMenuView);
+        mainMenuView.requestFocus();
+    }
+
     private void startDuel(String opponent) {
         currentOpponent = opponent;
         // CPU profiles and the selected saved deck are connected in a later rules pass.
         duelView = new DuelView(this, new DuelView.Listener() {
             @Override public void onExitToMenu() { showMainMenu(); }
-            @Override public void onDuelAgain() { startDuel(currentOpponent); }
+            @Override public void onDuelAgain() { showOpponentSelection(); }
         });
         mainMenuView = null;
         deckBuilderView = null;
