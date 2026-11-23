@@ -467,7 +467,9 @@ public final class DuelEngine {
                     message = "Your face-down monster was revealed and survives";
                 }
             } else if (attacker.attack > playerField[target].attack) {
-                playerLP = Math.max(0, playerLP - (attacker.attack - playerField[target].attack));
+                if (!preventBattleDamage) {
+                    playerLP = Math.max(0, playerLP - (attacker.attack - playerField[target].attack));
+                }
                 playerGraveyard.add(playerField[target]);
                 playerMonsterFaceDown[target] = false;
                 playerField[target] = null;
