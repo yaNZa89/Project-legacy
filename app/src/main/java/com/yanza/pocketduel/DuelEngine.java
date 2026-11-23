@@ -404,6 +404,7 @@ public final class DuelEngine {
             CardDefinition attacker = cpuField[i];
             if (attacker == null || cpuAttacked[i] || cpuMonsterFaceDown[i]) continue;
             int target = weakestMonster(playerField);
+            boolean preventBattleDamage = false;
             int trapSlot = firstSetTrap("NEGATE_ATTACK", "PREVENT_DAMAGE", "DESTROY_ATTACKER");
             if (trapSlot >= 0) {
                 CardDefinition trap = playerSpellTrap[trapSlot];
@@ -412,12 +413,16 @@ public final class DuelEngine {
                 playerGraveyard.add(trap);
                 message = trap.name + " activated";
                 if (resolution.length() > 0) message += " - " + resolution;
-                cpuAttacked[i] = true;
-                if (phase == Phase.FINISHED) return;
-                continue;
+                if ("PREVENT_DAMAGE".equals(trap.effectId)) {
+                    preventBattleDamage = true;
+                } else {
+                    cpuAttacked[i] = true;
+                    if (phase == Phase.FINISHED) return;
+                    continue;
+                }
             }
             if (target < 0) {
-                playerLP = Math.max(0, playerLP - attacker.attack);
+                if (!preventBattleDamage) playerLP = Math.max(0, playerLP - attacker.attack);
             } else if (playerMonsterFaceDown[target]) {
                 int defense = playerField[target].defense;
                 playerMonsterFaceDown[target] = false;
@@ -442,7 +447,9 @@ public final class DuelEngine {
                 playerField[target] = null;
                 cpuField[i] = null;
             } else {
-                playerLP = Math.max(0, playerLP - (playerField[target].attack - attacker.attack));
+                if (!preventBattleDamage) {
+                    playerLP = Math.max(0, playerLP - (playerField[target].attack - attacker.attack));
+                }
                 playerGraveyard.add(attacker);
                 cpuField[i] = null;
                 cpuMonsterFaceDown[i] = false;
