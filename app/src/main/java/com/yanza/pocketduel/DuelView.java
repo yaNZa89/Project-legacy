@@ -360,8 +360,10 @@ public class DuelView extends View {
                 } else if (selectedSummonAction == 1) {
                     if (card.level >= 5) duel.tributeSetFromHand(selectedHand);
                     else duel.setFromHand(selectedHand);
-                } else {
+                } else if (selectedSummonAction == 2 && duel.canSpecialSummonFromHand(selectedHand)) {
                     duel.specialSummonFromHand(selectedHand);
+                } else {
+                    hint = "Special Summon condition is not met";
                 }
             } else if (card.kind == CardDefinition.Kind.SPELL) {
                 duel.activateSpellFromHand(selectedHand);
