@@ -379,13 +379,21 @@ public final class DuelEngine {
         turn++;
         playerNormalSummons = 0;
         clearAttacks(playerAttacked);
-        draw(playerDeck, playerHand, 1);
+        int drawn = draw(playerDeck, playerHand, 1);
+        if (drawn < 1 && playerDeck.isEmpty()) {
+            finishDeckOut(true);
+            return;
+        }
         phase = Phase.DRAW;
         message = "Your turn " + turn + " - Draw Phase";
     }
 
     private void runCpuTurn() {
-        draw(cpuDeck, cpuHand, 1);
+        int drawn = draw(cpuDeck, cpuHand, 1);
+        if (drawn < 1 && cpuDeck.isEmpty()) {
+            finishDeckOut(false);
+            return;
+        }
         if (firstEmpty(cpuField) >= 0 && !cpuHand.isEmpty()) {
             int strongestIndex = -1;
             int strongestAtk = -1;
@@ -470,15 +478,15 @@ public final class DuelEngine {
     }
 
     boolean drawOneForEffect() {
-        int before = playerHand.size();
-        draw(playerDeck, playerHand, 1);
-        return playerHand.size() > before;
+        int drawn = draw(playerDeck, playerHand, 1);
+        if (drawn < 1 && playerDeck.isEmpty()) finishDeckOut(true);
+        return drawn > 0;
     }
 
     int drawCardsForEffect(int count) {
-        int before = playerHand.size();
-        draw(playerDeck, playerHand, count);
-        return playerHand.size() - before;
+        int drawn = draw(playerDeck, playerHand, count);
+        if (drawn < count && playerDeck.isEmpty()) finishDeckOut(true);
+        return drawn;
     }
 
     int gainLifePointsForEffect(int amount) {
@@ -514,8 +522,18 @@ public final class DuelEngine {
         return "attacking monster destroyed";
     }
 
-    private void draw(List<CardDefinition> deck, List<CardDefinition> hand, int count) {
-        for (int i = 0; i < count && !deck.isEmpty() && hand.size() < 7; i++) hand.add(deck.remove(0));
+    private int draw(List<CardDefinition> deck, List<CardDefinition> hand, int count) {
+        int drawn = 0;
+        for (int i = 0; i < count && !deck.isEmpty() && hand.size() < 7; i++) {
+            hand.add(deck.remove(0));
+            drawn++;
+        }
+        return drawn;
+    }
+
+    private void finishDeckOut(boolean playerDeckOut) {
+        phase = Phase.FINISHED;
+        message = playerDeckOut ? "You lose: your Deck is empty" : "You win: opponent's Deck is empty";
     }
     private int firstSetTrap(String... effects) {
         for (int i = 0; i < playerSpellTrap.length; i++) {
