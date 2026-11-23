@@ -528,6 +528,12 @@ public class DuelView extends View {
         if (playerSide) {
             float pileY = spellY + zoneH + getHeight() * 0.012f;
             drawPileStrip(canvas, pileY, w);
+        } else if (duel.getCpuFieldSpell() != null) {
+            paint.setColor(0xffffd36a);
+            paint.setTextAlign(Paint.Align.LEFT);
+            paint.setTextSize(Math.max(7, Math.min(10, w * 0.023f)));
+            canvas.drawText("FIELD: " + duel.getCpuFieldSpell().name,
+                    start, spellY + zoneH + getHeight() * 0.023f, paint);
         }
     }
 
