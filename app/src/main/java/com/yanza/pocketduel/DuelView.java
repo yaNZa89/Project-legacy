@@ -204,8 +204,12 @@ public class DuelView extends View {
         }
 
         if (summonMenu) {
+            List<CardDefinition> hand = duel.getPlayerHand();
+            CardDefinition selected = selectedHand >= 0 && selectedHand < hand.size()
+                    ? hand.get(selectedHand) : null;
             if (key == KeyEvent.KEYCODE_DPAD_LEFT || key == KeyEvent.KEYCODE_DPAD_RIGHT) {
-                selectedSummonAction = 1 - selectedSummonAction;
+                if (selected != null && selected.kind == CardDefinition.Kind.MONSTER)
+                    selectedSummonAction = 1 - selectedSummonAction;
             } else if (key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER) {
                 executeSummonAction();
             } else if (key == KeyEvent.KEYCODE_POUND || key == KeyEvent.KEYCODE_BACK) {
@@ -728,8 +732,8 @@ public class DuelView extends View {
                 ? new String[]{"SET TRAP"}
                 : new String[]{"SUMMON", "SET FACE-DOWN"};
         for (int i = 0; i < labels.length; i++) {
-            float x = left + 10 + i * ((right - left - 25) / 2f);
-            float width = (right - left - 25) / 2f;
+            float width = labels.length == 1 ? right - left - 20 : (right - left - 25) / 2f;
+            float x = labels.length == 1 ? left + 10 : left + 10 + i * (width + 5);
             paint.setColor(selectedSummonAction == i ? 0xffffc857 : 0xff29465a);
             canvas.drawRoundRect(new RectF(x, top + 38, x + width, top + 72), 6, 6, paint);
             paint.setColor(selectedSummonAction == i ? 0xff172536 : 0xfff0f5f8);
