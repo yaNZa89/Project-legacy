@@ -208,8 +208,11 @@ public class DuelView extends View {
             CardDefinition selected = selectedHand >= 0 && selectedHand < hand.size()
                     ? hand.get(selectedHand) : null;
             if (key == KeyEvent.KEYCODE_DPAD_LEFT || key == KeyEvent.KEYCODE_DPAD_RIGHT) {
-                if (selected != null && selected.kind == CardDefinition.Kind.MONSTER)
-                    selectedSummonAction = 1 - selectedSummonAction;
+                if (selected != null && selected.kind == CardDefinition.Kind.MONSTER) {
+                    int actionCount = duel.canSpecialSummonFromHand(selectedHand) ? 3 : 2;
+                    int direction = key == KeyEvent.KEYCODE_DPAD_LEFT ? -1 : 1;
+                    selectedSummonAction = (selectedSummonAction + direction + actionCount) % actionCount;
+                }
             } else if (key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER) {
                 executeSummonAction();
             } else if (key == KeyEvent.KEYCODE_POUND || key == KeyEvent.KEYCODE_BACK) {
@@ -354,9 +357,11 @@ public class DuelView extends View {
                 if (selectedSummonAction == 0) {
                     if (card.level >= 5) duel.tributeSummonFromHand(selectedHand);
                     else duel.summonFromHand(selectedHand);
-                } else {
+                } else if (selectedSummonAction == 1) {
                     if (card.level >= 5) duel.tributeSetFromHand(selectedHand);
                     else duel.setFromHand(selectedHand);
+                } else {
+                    duel.specialSummonFromHand(selectedHand);
                 }
             } else if (card.kind == CardDefinition.Kind.SPELL) {
                 duel.activateSpellFromHand(selectedHand);
@@ -730,10 +735,12 @@ public class DuelView extends View {
                 ? new String[]{"ACTIVATE SPELL"}
                 : selected != null && selected.kind == CardDefinition.Kind.TRAP
                 ? new String[]{"SET TRAP"}
+                : duel.canSpecialSummonFromHand(selectedHand)
+                ? new String[]{"SUMMON", "SET FACE-DOWN", "SPECIAL SUMMON"}
                 : new String[]{"SUMMON", "SET FACE-DOWN"};
         for (int i = 0; i < labels.length; i++) {
-            float width = labels.length == 1 ? right - left - 20 : (right - left - 25) / 2f;
-            float x = labels.length == 1 ? left + 10 : left + 10 + i * (width + 5);
+            float width = (right - left - 20 - (labels.length - 1) * 5) / labels.length;
+            float x = left + 10 + i * (width + 5);
             paint.setColor(selectedSummonAction == i ? 0xffffc857 : 0xff29465a);
             canvas.drawRoundRect(new RectF(x, top + 38, x + width, top + 72), 6, 6, paint);
             paint.setColor(selectedSummonAction == i ? 0xff172536 : 0xfff0f5f8);
