@@ -268,13 +268,10 @@ public final class DuelEngine {
                     cpuField[defenderSlot] = null;
                     message = "Face-down monster revealed and destroyed";
                 } else if (attacker.attack < defenderValue) {
-                    playerGraveyard.add(attacker);
-                    playerField[attackerSlot] = null;
-                    message = "Attacker fails to overcome the revealed Defense Position monster";
+                    playerLP = Math.max(0, playerLP - (defenderValue - attacker.attack));
+                    message = "Face-down monster revealed; attacker survives and you take battle damage";
                 } else {
-                    playerGraveyard.add(attacker);
-                    playerField[attackerSlot] = null;
-                    message = "Defense Position monster survives the equal battle";
+                    message = "Face-down monster revealed; both monsters survive";
                 }
             } else if (attacker.attack > defenderValue) {
                 cpuLP = Math.max(0, cpuLP - (attacker.attack - defenderValue));
@@ -350,8 +347,11 @@ public final class DuelEngine {
                 if (attacker.attack > defense) {
                     playerField[target] = null;
                     message = "Your face-down monster was revealed and destroyed";
+                } else if (attacker.attack < defense) {
+                    cpuLP = Math.max(0, cpuLP - (defense - attacker.attack));
+                    message = "Your face-down monster survives; opponent takes battle damage";
                 } else {
-                    message = "Your face-down monster was revealed and survives";
+                    message = "Your face-down monster was revealed; both monsters survive";
                 }
             } else if (attacker.attack > playerField[target].attack) {
                 playerLP = Math.max(0, playerLP - (attacker.attack - playerField[target].attack));
