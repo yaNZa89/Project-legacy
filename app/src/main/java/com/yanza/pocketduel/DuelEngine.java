@@ -420,14 +420,14 @@ public final class DuelEngine {
                 cpuAttacked[slot] = false;
                 cpuMonsterFaceDown[slot] = false;
                 // Set decisions depend on the board state, never on ATK/DEF thresholds.
-                cpuMonsterFaceDown[slot] = weakestMonster(playerField) >= 0;
+                cpuMonsterFaceDown[slot] = hasMonsters(playerField);
                 message = cpuMonsterFaceDown[slot] ? "Opponent Set a monster face-down" : "Opponent Normal Summoned a monster";
             }
         }
         for (int i = 0; i < cpuField.length; i++) {
             CardDefinition attacker = cpuField[i];
             if (attacker == null || cpuAttacked[i] || cpuMonsterFaceDown[i]) continue;
-            int target = weakestMonster(playerField);
+            int target = cpuChooseAttackTarget();
             boolean preventBattleDamage = false;
             int trapSlot = firstSetTrap("NEGATE_ATTACK", "PREVENT_DAMAGE", "DESTROY_ATTACKER");
             if (trapSlot >= 0) {
@@ -557,6 +557,22 @@ public final class DuelEngine {
         for (int i = 0; i < field.length; i++) if (field[i] == null) return i;
         return -1;
     }
+    /** CPU targets the weakest visible monster; face-down stats remain unknown. */
+    private int cpuChooseAttackTarget() {
+        int weakestVisible = -1;
+        for (int i = 0; i < playerField.length; i++) {
+            if (playerField[i] != null && !playerMonsterFaceDown[i]
+                    && (weakestVisible < 0 || playerField[i].attack < playerField[weakestVisible].attack)) {
+                weakestVisible = i;
+            }
+        }
+        if (weakestVisible >= 0) return weakestVisible;
+        for (int i = 0; i < playerField.length; i++) {
+            if (playerField[i] != null) return i;
+        }
+        return -1;
+    }
+
     private int weakestMonster(CardDefinition[] field) {
         int slot = -1;
         for (int i = 0; i < field.length; i++)
