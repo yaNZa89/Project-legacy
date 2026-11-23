@@ -186,8 +186,6 @@ public final class DuelEngine {
         }
         phase = next;
         message = "Your " + phaseLabel(next);
-        if (next == Phase.BATTLE) message += ": choose a monster, then press 5";
-        if (next == Phase.END) message += ": press 5 to finish your turn";
         return true;
     }
 

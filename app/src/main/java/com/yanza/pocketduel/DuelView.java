@@ -115,7 +115,7 @@ public class DuelView extends View {
         } else if (key == KeyEvent.KEYCODE_DPAD_UP || key == KeyEvent.KEYCODE_DPAD_DOWN
                ) {
             int direction = key == KeyEvent.KEYCODE_DPAD_UP ? -1 : 1;
-            navRow = clamp(navRow + direction, 0, 3);
+            navRow = clamp(navRow + direction, 0, 4);
             navColumn = clamp(navColumn, 0, rowMaxColumn(navRow));
             syncNavigationSelection();
         } else if (key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER) {
@@ -136,7 +136,7 @@ public class DuelView extends View {
     }
 
     private int rowMaxColumn(int row) {
-        return row == 0 || row == 1 ? 6 : 4;
+        return row == 0 || row == 1 ? 6 : row == 2 ? 4 : row == 4 ? 5 : 4;
     }
 
     private void syncNavigationSelection() {
@@ -148,10 +148,16 @@ public class DuelView extends View {
                 Math.max(0, duel.getPlayerHand().size() - 1));
         hint = navRow == 0 ? "Monster/Pendulum row"
                 : navRow == 1 ? "Spell/Trap row"
-                : navRow == 2 ? "Deck and pile row" : "Hand row";
+                : navRow == 2 ? "Deck and pile row"
+                : navRow == 3 ? "Hand row" : "Phase row - choose a phase with D-pad";
     }
 
     private void activateArenaSelection() {
+        if (navRow == 4) {
+            selectedPhaseIndex = clamp(navColumn, 0, 5);
+            activateSelectedPhase();
+            return;
+        }
         if (duel.getPhase() == DuelEngine.Phase.END) {
             if (navRow == 3) {
                 duel.endPlayerTurn();
@@ -375,6 +381,8 @@ public class DuelView extends View {
         }
         hint = duel.getMessage();
         phaseMenu = false;
+        navRow = 4;
+        navColumn = selectedPhaseIndex;
     }
 
     private void drawPhaseMenu(Canvas canvas, float w, float h) {
@@ -417,7 +425,7 @@ public class DuelView extends View {
         for (int i = 0; i < labels.length; i++) {
             float x = 7 + i * (cellW + gap);
             boolean active = duel.getPhase() == phases[i];
-            boolean cursor = false;
+            boolean cursor = navRow == 4 && navColumn == i;
             paint.setColor(active ? 0xffffc857 : 0xff29465a);
             canvas.drawRoundRect(new RectF(x, top, x + cellW, bottom), 5, 5, paint);
             paint.setColor(active ? 0xff172536 : 0xffd8e3eb);
