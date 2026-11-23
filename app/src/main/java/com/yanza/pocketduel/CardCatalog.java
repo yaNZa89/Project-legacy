@@ -55,7 +55,7 @@ public final class CardCatalog {
         addSpell("monster_reborn_echo", "Rebirth Echo", "REVIVE_MONSTER");
         addTrap("mirror_guard", "Mirror Guard", "NEGATE_ATTACK");
         addTrap("last_stand", "Last Stand", "PREVENT_DAMAGE");
-        addTrap("grave snare".replace(" ", "_"), "Grave Snare", "TRAP_DESTROY");
+        addTrap("grave_snare", "Grave Snare", "DESTROY_ATTACKER");
 
         addPendulum("scale_flare_adept", "Scale Flare Adept", CardDefinition.MonsterType.SPELLCASTER, CardDefinition.Attribute.FIRE, 4, 1500, 1000, 2);
         addPendulum("scale_tide_beast", "Scale Tide Beast", CardDefinition.MonsterType.AQUA, CardDefinition.Attribute.WATER, 4, 1400, 1600, 7);
