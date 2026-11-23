@@ -21,7 +21,7 @@ public final class MainMenuView extends View {
     private final String[] opponents = { "AI Duelist 01", "AI Duelist 02", "AI Duelist 03" };
     private Screen screen = Screen.MAIN;
     private int selected;
-    private String notice = "Choose an option and press 5";
+    private String notice = "D-pad move | OK select | BACK return";
 
     public MainMenuView(Context context, Listener listener) {
         super(context);
@@ -75,7 +75,7 @@ public final class MainMenuView extends View {
         } else if (screen == Screen.OPPONENT) {
             if (listener != null) listener.onStartDuel(opponents[selected]);
         } else {
-            notice = "D-pad move | OK select | # back";
+            notice = "D-pad move | OK select | BACK return";
         }
     }
 
@@ -100,7 +100,7 @@ public final class MainMenuView extends View {
         paint.setTextSize(Math.max(15f,w*.047f));
         canvas.drawText(heading,w/2f,h*.37f,paint);
         String[] entries=screen==Screen.MAIN?menu:screen==Screen.OPPONENT?opponents:
-                new String[]{"Keypad: 2/8 move, 5 select","Back: #"};
+                new String[]{"D-pad: move / OK select","BACK: return"};
         float itemH=Math.min(h*.105f,58f), startY=h*.43f;
         for(int i=0;i<entries.length;i++) {
             float top=startY+i*(itemH+10f);
@@ -113,6 +113,6 @@ public final class MainMenuView extends View {
         paint.setColor(0xFFB8C9D6);
         paint.setTextSize(Math.max(10f,w*.029f));
         canvas.drawText(notice,w/2f,h*.84f,paint);
-        canvas.drawText("D-PAD NAVIGATE     OK CONFIRM     # BACK",w/2f,h*.89f,paint);
+        canvas.drawText("D-PAD NAVIGATE     OK CONFIRM     BACK RETURN",w/2f,h*.89f,paint);
     }
 }
