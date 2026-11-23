@@ -436,7 +436,7 @@ public final class DuelEngine {
             if (attacker == null || cpuAttacked[i] || cpuMonsterFaceDown[i]) continue;
             int target = cpuChooseAttackTarget();
             boolean preventBattleDamage = false;
-            int trapSlot = firstSetTrap("NEGATE_ATTACK", "PREVENT_DAMAGE", "DESTROY_ATTACKER");
+            int trapSlot = firstSetTrapForAttack(attacker, target);
             if (trapSlot >= 0) {
                 CardDefinition trap = playerSpellTrap[trapSlot];
                 String resolution = CardEffectResolver.resolveTrapOnAttack(this, trap, i);
@@ -564,11 +564,17 @@ public final class DuelEngine {
         phase = Phase.FINISHED;
         message = playerDeckOut ? "You lose: your Deck is empty" : "You win: opponent's Deck is empty";
     }
-    private int firstSetTrap(String... effects) {
+    private int firstSetTrapForAttack(CardDefinition attacker, int target) {
+        boolean playerWouldTakeDamage = target < 0
+                || (!playerMonsterFaceDown[target]
+                && attacker.attack > playerField[target].attack);
         for (int i = 0; i < playerSpellTrap.length; i++) {
             CardDefinition card = playerSpellTrap[i];
             if (card == null || card.kind != CardDefinition.Kind.TRAP || playerTrapSetThisTurn[i]) continue;
-            for (String effect : effects) if (effect.equals(card.effectId)) return i;
+            if ("NEGATE_ATTACK".equals(card.effectId) || "DESTROY_ATTACKER".equals(card.effectId))
+                return i;
+            if ("PREVENT_DAMAGE".equals(card.effectId) && playerWouldTakeDamage)
+                return i;
         }
         return -1;
     }
