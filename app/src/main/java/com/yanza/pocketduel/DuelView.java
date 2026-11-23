@@ -355,6 +355,10 @@ public class DuelView extends View {
         }
         duel.playerAttack(selectedMonster, target);
         hint = duel.getMessage();
+        if (duel.getPhase() == DuelEngine.Phase.FINISHED) {
+            pauseMenu = true;
+            selectedPauseOption = 0;
+        }
     }
 
     @Override protected void onDraw(Canvas canvas) {
@@ -532,6 +536,10 @@ public class DuelView extends View {
             }
         }
         hint = duel.getMessage();
+        if (duel.getPhase() == DuelEngine.Phase.FINISHED) {
+            pauseMenu = true;
+            selectedPauseOption = 0;
+        }
         phaseMenu = false;
         navRow = 4;
         navColumn = selectedPhaseIndex;
