@@ -26,7 +26,7 @@ public final class CardCatalog {
         add("abyss_stalker", "Abyss Stalker", CardDefinition.MonsterType.FIEND, CardDefinition.Attribute.DARK, 4, 1700, 800, "");
         add("sunpetal_fairy", "Sunpetal Fairy", CardDefinition.MonsterType.FAIRY, CardDefinition.Attribute.LIGHT, 3, 1000, 1400, "");
         add("mossback_beast", "Mossback Beast", CardDefinition.MonsterType.BEAST, CardDefinition.Attribute.EARTH, 4, 1400, 1600, "");
-        add("tidecaller_serpent", "Tidecaller Serpent", CardDefinition.MonsterType.SEA_SERPENT, CardDefinition.Attribute.WATER, 5, 1700, 1900, "");
+        add("tidecaller_serpent", "Tidecaller Serpent", CardDefinition.MonsterType.SEA_SERPENT, CardDefinition.Attribute.WATER, 5, 1700, 1900, "SPECIAL_SUMMON_IF_OPPONENT_HAS_MONSTER");
         add("cinder_imp", "Cinder Imp", CardDefinition.MonsterType.FIEND, CardDefinition.Attribute.FIRE, 2, 800, 500, "SPECIAL_SUMMON_IF_NO_MONSTERS");
         add("frost_mech", "Frost Mech", CardDefinition.MonsterType.MACHINE, CardDefinition.Attribute.WATER, 4, 1300, 1800, "");
         add("volt_fox", "Volt Fox", CardDefinition.MonsterType.THUNDER, CardDefinition.Attribute.LIGHT, 3, 1200, 700, "");
