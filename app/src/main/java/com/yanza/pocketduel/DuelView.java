@@ -57,18 +57,8 @@ public class DuelView extends View {
             invalidate(); return true;
         }
         if (key == KeyEvent.KEYCODE_SOFT_RIGHT) {
-            if (summonMenu) {
-                summonMenu = false;
-            } else if (detailCard == null && !deckBrowser && !phaseMenu
-                    && navRow == 3 && selectedHand < duel.getPlayerHand().size()
-                    && selectedHand >= 0
-                    && duel.getPlayerHand().get(selectedHand).kind == CardDefinition.Kind.MONSTER) {
-                summonMenu = true;
-                selectedSummonAction = 0;
-            } else {
-                pauseMenu = !pauseMenu;
-                selectedExitOption = 0;
-            }
+            pauseMenu = !pauseMenu;
+            selectedExitOption = 0;
             invalidate();
             return true;
         }
@@ -78,9 +68,11 @@ public class DuelView extends View {
             invalidate(); return true;
         }
         if (pauseMenu) {
-            if (key == KeyEvent.KEYCODE_DPAD_LEFT || key == KeyEvent.KEYCODE_DPAD_RIGHT) selectedExitOption = 1 - selectedExitOption;
+            if (key == KeyEvent.KEYCODE_DPAD_LEFT) selectedExitOption = (selectedExitOption + 2) % 3;
+            else if (key == KeyEvent.KEYCODE_DPAD_RIGHT) selectedExitOption = (selectedExitOption + 1) % 3;
             else if (key == KeyEvent.KEYCODE_5 || key == KeyEvent.KEYCODE_DPAD_CENTER || key == KeyEvent.KEYCODE_ENTER) {
                 if (selectedExitOption == 0) pauseMenu = false;
+                else if (selectedExitOption == 1) { pauseMenu = false; if (listener != null) listener.onDuelAgain(); }
                 else if (listener != null) listener.onExitToMenu();
             } else return true;
             invalidate(); return true;
@@ -380,19 +372,22 @@ public class DuelView extends View {
         paint.setColor(0xffffd477);
         paint.setTextSize(Math.max(16, w * 0.048f));
         canvas.drawText(finished ? (duel.getPlayerLP() > 0 ? "YOU WIN!" : "YOU LOSE") : "DUEL PAUSED", w / 2f, top + 32, paint);
-        String[] labels = finished ? new String[]{"DUEL AGAIN", "MAIN MENU"} : new String[]{"RESUME", "EXIT TO MAIN MENU"};
+        String[] labels = finished
+                ? new String[]{"DUEL AGAIN", "MAIN MENU"}
+                : new String[]{"RESUME", "DUEL AGAIN", "EXIT MENU"};
+        float gap = 5;
+        float buttonWidth = (right - left - 20 - gap * (labels.length - 1)) / labels.length;
         for (int i = 0; i < labels.length; i++) {
-            float x = left + 10 + i * ((right - left - 25) / 2f);
-            float width = (right - left - 25) / 2f;
+            float x = left + 10 + i * (buttonWidth + gap);
             paint.setColor(selectedExitOption == i ? 0xffffc857 : 0xff29465a);
-            canvas.drawRoundRect(new RectF(x, top + 54, x + width, top + 94), 6, 6, paint);
+            canvas.drawRoundRect(new RectF(x, top + 54, x + buttonWidth, top + 94), 6, 6, paint);
             paint.setColor(selectedExitOption == i ? 0xff172536 : 0xfff0f5f8);
-            paint.setTextSize(Math.max(9, w * 0.027f));
-            canvas.drawText(labels[i], x + width / 2f, top + 79, paint);
+            paint.setTextSize(Math.max(8, w * (labels.length == 3 ? 0.023f : 0.027f)));
+            canvas.drawText(labels[i], x + buttonWidth / 2f, top + 79, paint);
         }
         paint.setColor(0xffd9eaf4);
         paint.setTextSize(Math.max(10, w * 0.028f));
-        canvas.drawText("D-PAD LEFT/RIGHT   5 CONFIRM   RIGHT PAUSE", w / 2f, bottom - 12, paint);
+        canvas.drawText(finished ? "D-PAD LEFT/RIGHT   5 CONFIRM" : "D-PAD LEFT/RIGHT   5 SELECT", w / 2f, bottom - 12, paint);
         paint.setTextAlign(Paint.Align.LEFT);
     }
 
