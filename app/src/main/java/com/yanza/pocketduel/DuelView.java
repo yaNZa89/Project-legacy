@@ -453,10 +453,22 @@ public class DuelView extends View {
         }
         int target = -1;
         int weakest = Integer.MAX_VALUE;
+        // Never use hidden ATK values to choose an attack target.
         for (int i = 0; i < enemy.length; i++) {
-            if (enemy[i] != null && enemy[i].attack < weakest) {
+            if (enemy[i] != null && !duel.isCpuMonsterFaceDown(i)
+                    && enemy[i].attack < weakest) {
                 weakest = enemy[i].attack;
                 target = i;
+            }
+        }
+        // If every opposing monster is face-down, choose the first occupied slot
+        // without inspecting its hidden stats.
+        if (target < 0) {
+            for (int i = 0; i < enemy.length; i++) {
+                if (enemy[i] != null) {
+                    target = i;
+                    break;
+                }
             }
         }
         duel.playerAttack(selectedMonster, target);
