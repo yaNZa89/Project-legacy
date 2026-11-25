@@ -171,10 +171,8 @@ public final class DuelEngine {
         playerMonsterFaceDown[slot] = false;
         playerAttacked[slot] = false;
         message = card.name + " Special Summoned from hand";
-        String effectMessage = CardEffectResolver.resolveOnSummon(this, card);
-        if (phase != Phase.FINISHED && effectMessage.length() > 0) {
-            message += " - " + effectMessage;
-        }
+        // ON_SUMMON effects in this prototype are explicitly Normal Summon
+        // triggers; a Special Summon must not activate them.
         return true;
     }
 
