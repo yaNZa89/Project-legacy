@@ -510,7 +510,7 @@ public final class DuelEngine {
 
     int gainLifePointsForEffect(int amount) {
         int before = playerLP;
-        playerLP = Math.min(12000, playerLP + amount);
+        playerLP += amount;
         return playerLP - before;
     }
 
