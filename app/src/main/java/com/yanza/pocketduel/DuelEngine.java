@@ -24,6 +24,9 @@ public final class DuelEngine {
     private final boolean[] cpuAttacked = new boolean[5];
     private final boolean[] cpuMonsterFaceDown = new boolean[5];
     private final boolean[] playerMonsterFaceDown = new boolean[5];
+    /** Set monsters remain in Defense Position after being revealed by battle. */
+    private final boolean[] cpuMonsterDefensePosition = new boolean[5];
+    private final boolean[] playerMonsterDefensePosition = new boolean[5];
     /** Trap cards cannot be activated during the same turn they were Set. */
     private final boolean[] playerTrapSetThisTurn = new boolean[5];
 
@@ -98,9 +101,18 @@ public final class DuelEngine {
     }
     /** Used by CPU set actions; setting a card face-up reveals it normally. */
     public void setCpuMonsterFaceDown(int slot, boolean faceDown) {
-        if (validSlot(slot) && cpuField[slot] != null) cpuMonsterFaceDown[slot] = faceDown;
+        if (validSlot(slot) && cpuField[slot] != null) {
+            cpuMonsterFaceDown[slot] = faceDown;
+            if (faceDown) cpuMonsterDefensePosition[slot] = true;
+        }
+    }
+    public boolean isCpuMonsterDefensePosition(int slot) {
+        return validSlot(slot) && cpuMonsterDefensePosition[slot] && cpuField[slot] != null;
     }
     public boolean isPlayerMonsterFaceDown(int slot) { return validSlot(slot) && playerMonsterFaceDown[slot] && playerField[slot] != null; }
+    public boolean isPlayerMonsterDefensePosition(int slot) {
+        return validSlot(slot) && playerMonsterDefensePosition[slot] && playerField[slot] != null;
+    }
     public int getPlayerLP() { return playerLP; }
     public int getCpuLP() { return cpuLP; }
     public int getTurn() { return turn; }
@@ -119,6 +131,7 @@ public final class DuelEngine {
         playerHand.remove(handIndex);
         playerField[slot] = card;
         playerMonsterFaceDown[slot] = false;
+        playerMonsterDefensePosition[slot] = false;
         playerAttacked[slot] = false;
         playerNormalSummons++;
         message = card.name + " summoned to slot " + (slot + 1);
@@ -142,6 +155,7 @@ public final class DuelEngine {
         playerHand.remove(handIndex);
         playerField[slot] = card;
         playerMonsterFaceDown[slot] = true;
+        playerMonsterDefensePosition[slot] = true;
         playerAttacked[slot] = false;
         playerNormalSummons++;
         message = "Monster Set face-down in Defense Position";
@@ -169,6 +183,7 @@ public final class DuelEngine {
         playerHand.remove(handIndex);
         playerField[slot] = card;
         playerMonsterFaceDown[slot] = false;
+        playerMonsterDefensePosition[slot] = false;
         playerAttacked[slot] = false;
         message = card.name + " Special Summoned from hand";
         // ON_SUMMON effects in this prototype are explicitly Normal Summon
@@ -231,6 +246,7 @@ public final class DuelEngine {
             int tributeSlot = weakestMonster(playerField);
             playerGraveyard.add(playerField[tributeSlot]);
             playerMonsterFaceDown[tributeSlot] = false;
+            playerMonsterDefensePosition[tributeSlot] = false;
             playerAttacked[tributeSlot] = false;
             playerField[tributeSlot] = null;
         }
@@ -238,6 +254,7 @@ public final class DuelEngine {
         playerHand.remove(handIndex);
         playerField[slot] = card;
         playerMonsterFaceDown[slot] = true;
+        playerMonsterDefensePosition[slot] = true;
         playerAttacked[slot] = false;
         playerNormalSummons++;
         message = "Tribute Set face-down in Defense Position (" + required + " tribute)";
@@ -260,6 +277,7 @@ public final class DuelEngine {
                 playerGraveyard.add(playerField[tributeSlot]);
                 playerField[tributeSlot] = null;
                 playerMonsterFaceDown[tributeSlot] = false;
+                playerMonsterDefensePosition[tributeSlot] = false;
             }
         }
         int slot = firstEmpty(playerField);
@@ -267,6 +285,7 @@ public final class DuelEngine {
         playerHand.remove(handIndex);
         playerField[slot] = card;
         playerMonsterFaceDown[slot] = false;
+        playerMonsterDefensePosition[slot] = false;
         playerAttacked[slot] = false;
         playerNormalSummons++;
         message = card.name + " Tribute Summoned (" + required + " tribute)";
@@ -329,6 +348,7 @@ public final class DuelEngine {
         if (!validSlot(attackerSlot) || playerField[attackerSlot] == null)
             return reject("Choose your monster first");
         if (playerMonsterFaceDown[attackerSlot]) return reject("A face-down monster cannot attack");
+        if (playerMonsterDefensePosition[attackerSlot]) return reject("A Defense Position monster cannot attack");
         if (playerAttacked[attackerSlot]) return reject("That monster already attacked");
         if (hasMonsters(cpuField)) {
             if (!validSlot(defenderSlot) || cpuField[defenderSlot] == null)
@@ -336,19 +356,27 @@ public final class DuelEngine {
             CardDefinition attacker = playerField[attackerSlot];
             CardDefinition defender = cpuField[defenderSlot];
             boolean wasFaceDown = cpuMonsterFaceDown[defenderSlot];
+            boolean defenderInDefense = cpuMonsterDefensePosition[defenderSlot];
             cpuMonsterFaceDown[defenderSlot] = false;
-            int defenderValue = wasFaceDown ? defender.defense : defender.attack;
-            if (wasFaceDown) {
+            int defenderValue = defenderInDefense ? defender.defense : defender.attack;
+            if (defenderInDefense) {
                 if (attacker.attack > defenderValue) {
                     cpuGraveyard.add(defender);
                     cpuField[defenderSlot] = null;
                     cpuMonsterFaceDown[defenderSlot] = false;
-                    message = "Face-down Defense Position monster revealed and destroyed";
+                    cpuMonsterDefensePosition[defenderSlot] = false;
+                    message = wasFaceDown
+                            ? "Face-down Defense Position monster revealed and destroyed"
+                            : "Defense Position monster destroyed";
                 } else if (attacker.attack < defenderValue) {
                     playerLP = Math.max(0, playerLP - (defenderValue - attacker.attack));
-                    message = "Defense Position monster revealed; attacker survives and you take battle damage";
+                    message = wasFaceDown
+                            ? "Defense Position monster revealed; attacker survives and you take battle damage"
+                            : "Your attacker loses against Defense Position; you take battle damage";
                 } else {
-                    message = "Defense Position monster revealed; both survive";
+                    message = wasFaceDown
+                            ? "Defense Position monster revealed; both survive"
+                            : "Both monsters survive in battle";
                 }
             } else if (attacker.attack > defenderValue) {
                 cpuLP = Math.max(0, cpuLP - (attacker.attack - defenderValue));
@@ -360,14 +388,17 @@ public final class DuelEngine {
                 playerGraveyard.add(attacker);
                 playerField[attackerSlot] = null;
                 playerMonsterFaceDown[attackerSlot] = false;
+                playerMonsterDefensePosition[attackerSlot] = false;
                 message = attacker.name + " loses the battle";
             } else {
                 playerGraveyard.add(attacker);
                 playerField[attackerSlot] = null;
                 playerMonsterFaceDown[attackerSlot] = false;
+                playerMonsterDefensePosition[attackerSlot] = false;
                 cpuGraveyard.add(defender);
                 cpuField[defenderSlot] = null;
                 cpuMonsterFaceDown[defenderSlot] = false;
+                cpuMonsterDefensePosition[defenderSlot] = false;
                 message = "Both monsters are removed";
             }
         } else {
@@ -426,12 +457,14 @@ public final class DuelEngine {
                 cpuMonsterFaceDown[slot] = false;
                 // Set decisions depend on the board state, never on ATK/DEF thresholds.
                 cpuMonsterFaceDown[slot] = hasMonsters(playerField);
+                cpuMonsterDefensePosition[slot] = cpuMonsterFaceDown[slot];
                 message = cpuMonsterFaceDown[slot] ? "Opponent Set a monster face-down" : "Opponent Normal Summoned a monster";
             }
         }
         for (int i = 0; i < cpuField.length; i++) {
             CardDefinition attacker = cpuField[i];
-            if (attacker == null || cpuAttacked[i] || cpuMonsterFaceDown[i]) continue;
+            if (attacker == null || cpuAttacked[i] || cpuMonsterFaceDown[i]
+                    || cpuMonsterDefensePosition[i]) continue;
             int target = cpuChooseAttackTarget();
             boolean preventBattleDamage = false;
             int trapSlot = firstSetTrapForAttack(attacker, target);
@@ -453,19 +486,25 @@ public final class DuelEngine {
             }
             if (target < 0) {
                 if (!preventBattleDamage) playerLP = Math.max(0, playerLP - attacker.attack);
-            } else if (playerMonsterFaceDown[target]) {
+            } else if (playerMonsterFaceDown[target] || playerMonsterDefensePosition[target]) {
+                boolean wasFaceDown = playerMonsterFaceDown[target];
                 int defense = playerField[target].defense;
                 playerMonsterFaceDown[target] = false;
                 if (attacker.attack > defense) {
                     playerGraveyard.add(playerField[target]);
                     playerField[target] = null;
                     playerMonsterFaceDown[target] = false;
-                    message = "Your face-down monster was revealed and destroyed";
+                    playerMonsterDefensePosition[target] = false;
+                    message = wasFaceDown
+                            ? "Your face-down monster was revealed and destroyed"
+                            : "Your Defense Position monster was destroyed";
                 } else {
                     if (attacker.attack < defense) {
                         cpuLP = Math.max(0, cpuLP - (defense - attacker.attack));
                     }
-                    message = "Your face-down monster was revealed; battle damage applied if its DEF is higher";
+                    message = wasFaceDown
+                            ? "Your face-down monster was revealed; battle damage applied if its DEF is higher"
+                            : "Your Defense Position monster survives; CPU takes battle damage if its DEF is higher";
                 }
             } else if (attacker.attack > playerField[target].attack) {
                 if (!preventBattleDamage) {
@@ -473,12 +512,15 @@ public final class DuelEngine {
                 }
                 playerGraveyard.add(playerField[target]);
                 playerMonsterFaceDown[target] = false;
+                playerMonsterDefensePosition[target] = false;
                 playerField[target] = null;
             } else if (attacker.attack == playerField[target].attack) {
                 playerGraveyard.add(playerField[target]);
                 cpuGraveyard.add(attacker);
                 playerMonsterFaceDown[target] = false;
+                playerMonsterDefensePosition[target] = false;
                 cpuMonsterFaceDown[i] = false;
+                cpuMonsterDefensePosition[i] = false;
                 playerField[target] = null;
                 cpuField[i] = null;
             } else {
@@ -488,6 +530,7 @@ public final class DuelEngine {
                 cpuGraveyard.add(attacker);
                 cpuField[i] = null;
                 cpuMonsterFaceDown[i] = false;
+                cpuMonsterDefensePosition[i] = false;
             }
             cpuAttacked[i] = true;
             checkWinner();
@@ -530,6 +573,7 @@ public final class DuelEngine {
             if (candidate.kind == CardDefinition.Kind.MONSTER) {
                 playerField[target] = candidate;
                 playerMonsterFaceDown[target] = false;
+                playerMonsterDefensePosition[target] = false;
                 playerAttacked[target] = false;
                 playerGraveyard.remove(i);
                 return true;
@@ -544,6 +588,7 @@ public final class DuelEngine {
         cpuGraveyard.add(attacker);
         cpuField[slot] = null;
         cpuMonsterFaceDown[slot] = false;
+        cpuMonsterDefensePosition[slot] = false;
         cpuAttacked[slot] = true;
         message = attacker.name + " destroyed by Trap effect";
         return "attacking monster destroyed";
@@ -564,7 +609,7 @@ public final class DuelEngine {
     }
     private int firstSetTrapForAttack(CardDefinition attacker, int target) {
         boolean playerWouldTakeDamage = target < 0
-                || (!playerMonsterFaceDown[target]
+                || (!playerMonsterDefensePosition[target]
                 && attacker.attack > playerField[target].attack);
         for (int i = 0; i < playerSpellTrap.length; i++) {
             CardDefinition card = playerSpellTrap[i];
@@ -585,10 +630,13 @@ public final class DuelEngine {
     private int cpuChooseAttackTarget() {
         int weakestVisible = -1;
         for (int i = 0; i < playerField.length; i++) {
-            if (playerField[i] != null && !playerMonsterFaceDown[i]
-                    && (weakestVisible < 0 || playerField[i].attack < playerField[weakestVisible].attack)) {
-                weakestVisible = i;
-            }
+            if (playerField[i] == null || playerMonsterFaceDown[i]) continue;
+            int battleValue = playerMonsterDefensePosition[i]
+                    ? playerField[i].defense : playerField[i].attack;
+            int weakestValue = weakestVisible < 0 ? Integer.MAX_VALUE
+                    : playerMonsterDefensePosition[weakestVisible]
+                    ? playerField[weakestVisible].defense : playerField[weakestVisible].attack;
+            if (battleValue < weakestValue) weakestVisible = i;
         }
         if (weakestVisible >= 0) return weakestVisible;
         for (int i = 0; i < playerField.length; i++) {
