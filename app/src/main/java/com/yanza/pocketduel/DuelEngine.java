@@ -244,7 +244,7 @@ public final class DuelEngine {
         if (countMonsters(playerField) < required) return reject("Need " + required + " monster tribute(s)");
         for (int n = 0; n < required; n++) {
             int tributeSlot = weakestMonster(playerField);
-            playerGraveyard.add(playerField[tributeSlot]);
+            movePlayerMonsterFromFieldToCorrectZone(tributeSlot);
             playerMonsterFaceDown[tributeSlot] = false;
             playerMonsterDefensePosition[tributeSlot] = false;
             playerAttacked[tributeSlot] = false;
@@ -274,7 +274,7 @@ public final class DuelEngine {
         for (int n = 0; n < required; n++) {
             int tributeSlot = weakestMonster(playerField);
             if (tributeSlot >= 0) {
-                playerGraveyard.add(playerField[tributeSlot]);
+                movePlayerMonsterFromFieldToCorrectZone(tributeSlot);
                 playerField[tributeSlot] = null;
                 playerMonsterFaceDown[tributeSlot] = false;
                 playerMonsterDefensePosition[tributeSlot] = false;
@@ -361,7 +361,7 @@ public final class DuelEngine {
             int defenderValue = defenderInDefense ? defender.defense : defender.attack;
             if (defenderInDefense) {
                 if (attacker.attack > defenderValue) {
-                    cpuGraveyard.add(defender);
+                    moveCpuMonsterFromFieldToCorrectZone(defenderSlot);
                     cpuField[defenderSlot] = null;
                     cpuMonsterFaceDown[defenderSlot] = false;
                     cpuMonsterDefensePosition[defenderSlot] = false;
@@ -380,22 +380,22 @@ public final class DuelEngine {
                 }
             } else if (attacker.attack > defenderValue) {
                 cpuLP = Math.max(0, cpuLP - (attacker.attack - defenderValue));
-                cpuGraveyard.add(defender);
+                moveCpuMonsterFromFieldToCorrectZone(defenderSlot);
                 cpuField[defenderSlot] = null;
                 message = attacker.name + " wins the battle";
             } else if (attacker.attack < defenderValue) {
                 playerLP = Math.max(0, playerLP - (defenderValue - attacker.attack));
-                playerGraveyard.add(attacker);
+                movePlayerMonsterFromFieldToCorrectZone(attackerSlot);
                 playerField[attackerSlot] = null;
                 playerMonsterFaceDown[attackerSlot] = false;
                 playerMonsterDefensePosition[attackerSlot] = false;
                 message = attacker.name + " loses the battle";
             } else {
-                playerGraveyard.add(attacker);
+                movePlayerMonsterFromFieldToCorrectZone(attackerSlot);
                 playerField[attackerSlot] = null;
                 playerMonsterFaceDown[attackerSlot] = false;
                 playerMonsterDefensePosition[attackerSlot] = false;
-                cpuGraveyard.add(defender);
+                moveCpuMonsterFromFieldToCorrectZone(defenderSlot);
                 cpuField[defenderSlot] = null;
                 cpuMonsterFaceDown[defenderSlot] = false;
                 cpuMonsterDefensePosition[defenderSlot] = false;
@@ -491,7 +491,7 @@ public final class DuelEngine {
                 int defense = playerField[target].defense;
                 playerMonsterFaceDown[target] = false;
                 if (attacker.attack > defense) {
-                    playerGraveyard.add(playerField[target]);
+                    movePlayerMonsterFromFieldToCorrectZone(target);
                     playerField[target] = null;
                     playerMonsterFaceDown[target] = false;
                     playerMonsterDefensePosition[target] = false;
@@ -510,13 +510,13 @@ public final class DuelEngine {
                 if (!preventBattleDamage) {
                     playerLP = Math.max(0, playerLP - (attacker.attack - playerField[target].attack));
                 }
-                playerGraveyard.add(playerField[target]);
+                movePlayerMonsterFromFieldToCorrectZone(target);
                 playerMonsterFaceDown[target] = false;
                 playerMonsterDefensePosition[target] = false;
                 playerField[target] = null;
             } else if (attacker.attack == playerField[target].attack) {
-                playerGraveyard.add(playerField[target]);
-                cpuGraveyard.add(attacker);
+                movePlayerMonsterFromFieldToCorrectZone(target);
+                moveCpuMonsterFromFieldToCorrectZone(i);
                 playerMonsterFaceDown[target] = false;
                 playerMonsterDefensePosition[target] = false;
                 cpuMonsterFaceDown[i] = false;
@@ -527,7 +527,7 @@ public final class DuelEngine {
                 if (!preventBattleDamage) {
                     playerLP = Math.max(0, playerLP - (playerField[target].attack - attacker.attack));
                 }
-                cpuGraveyard.add(attacker);
+                moveCpuMonsterFromFieldToCorrectZone(i);
                 cpuField[i] = null;
                 cpuMonsterFaceDown[i] = false;
                 cpuMonsterDefensePosition[i] = false;
@@ -585,13 +585,28 @@ public final class DuelEngine {
     String destroyCpuAttackerForEffect(int slot) {
         if (!validSlot(slot) || cpuField[slot] == null) return "no valid attacking monster";
         CardDefinition attacker = cpuField[slot];
-        cpuGraveyard.add(attacker);
+        moveCpuMonsterFromFieldToCorrectZone(slot);
         cpuField[slot] = null;
         cpuMonsterFaceDown[slot] = false;
         cpuMonsterDefensePosition[slot] = false;
         cpuAttacked[slot] = true;
         message = attacker.name + " destroyed by Trap effect";
         return "attacking monster destroyed";
+    }
+
+    /** Pendulum monsters sent from the field go to their owner's Extra Deck. */
+    private void movePlayerMonsterFromFieldToCorrectZone(int slot) {
+        if (!validSlot(slot) || playerField[slot] == null) return;
+        CardDefinition monster = playerField[slot];
+        if (monster.isPendulumMonster()) playerExtraDeck.add(monster);
+        else playerGraveyard.add(monster);
+    }
+
+    private void moveCpuMonsterFromFieldToCorrectZone(int slot) {
+        if (!validSlot(slot) || cpuField[slot] == null) return;
+        CardDefinition monster = cpuField[slot];
+        if (monster.isPendulumMonster()) cpuExtraDeck.add(monster);
+        else cpuGraveyard.add(monster);
     }
 
     private int draw(List<CardDefinition> deck, List<CardDefinition> hand, int count) {
